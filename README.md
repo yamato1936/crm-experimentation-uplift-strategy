@@ -135,7 +135,7 @@ HC3 robust standard errorを用いたinteraction modelで、pre-treatment covari
 
 基本形:
 
-```text
+```math
 Y = beta0 + beta1*T + beta2*X + beta3*(T*X) + error
 ```
 
@@ -166,7 +166,7 @@ Women's Email vs Control
 
 Predicted upliftは次の差として定義しています。
 
-```text
+```math
 predicted_uplift(x) = predicted_outcome_treatment(x)
                     - predicted_outcome_control(x)
 ```
@@ -195,7 +195,7 @@ Held-out predictionsを用いて以下のpolicyを比較しました。
 
 Policy valueはInverse Propensity Weightingで推定しています。
 
-```text
+```math
 V(policy)
 = E[
     policy(X) * T * Y / e
@@ -227,7 +227,7 @@ Men's EmailではTop-k policyがSend Allよりgross spendを低下させまし�
 
 Top-10% vs Send All:
 
-```text
+```math
 Difference = -0.301
 95% CI     = [-0.745, +0.114]
 ```
@@ -238,7 +238,7 @@ CIは0を跨いでいるため、Top-10% targetingがSend Allと同等以上のg
 
 Hillstrom Datasetには実際のdelivery costやgross marginがありません。そのため架空の利益率を置かず、Spendと同じ単位でrevenue-equivalent break-even costを計算しました。
 
-```text
+```math
 net_value(policy, cost)
 = policy_value - cost * treatment_rate
 ```
@@ -247,7 +247,7 @@ Women's Email Top-10%のSend Allに対するpoint-estimate break-even costは約
 
 ただし、これはprofit thresholdではありません。実務では次のようにgross marginを含めて判断する必要があります。
 
-```text
+```math
 Net Value = Gross Margin * Incremental Spend - Delivery Cost
 ```
 
@@ -262,13 +262,13 @@ Experiment開始前にfeature set、model、hyperparameters、scoring logic、ta
 
 Primary estimand:
 
-```text
+```math
 Delta = E[Spend | Targeting] - E[Spend | Send All]
 ```
 
 配信量を約90%削減するpolicyであるため、superiorityだけでなくnon-inferiority designを主要候補とします。
 
-```text
+```math
 H0: Delta <= -Margin
 H1: Delta >  -Margin
 ```
