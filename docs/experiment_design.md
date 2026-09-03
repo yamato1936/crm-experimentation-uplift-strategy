@@ -1,79 +1,108 @@
-# Prospective Experiment Design
+# 次回ランダム化比較試験の設計
 
 ## 1. 目的
 
-本ドキュメントでは、既存分析から得られたWomen's Email targeting仮説を、新しいrandomized experimentでprospectiveに検証するための設計を定義します。
+本ドキュメントでは、既存分析から得られたWomen's Emailのターゲティング仮説を、新しいランダム化比較試験で前向きに検証するための設計を定義します。
 
 既存分析ではWomen's Emailについて、以下が確認されています。
 
-- Controlに対する正の平均処置効果
-- 一部pre-treatment covariateによるTreatment Effect Heterogeneity
-- Uplift modelによるpositive ranking signal
+- 対照群に対する正の平均処置効果
+- 一部の事前共変量による処置効果の異質性
+- アップリフトモデルによる順位付けシグナル
 - Top-k targetingによる配信効率改善の可能性
 
-一方、Top-k targetingがSend Allより高いgross spendを生むことは確認できていません。
+一方で、Top-k targetingが一律配信より高いgross spendを生み出すことは確認できていません。
 
-したがって次回実験では、**Women's Emailを全eligible userに送るSend Allと、事前に固定したTop-10% targeting policyを比較し、許容可能なSpend lossの範囲内で配信量を削減できるか**を検証します。
+したがって次回実験では、
 
-## 2. Primary Business Question
+> Women's Emailをeligible user全員に送る現行方針と比較して、事前に固定したuplift targeting policyが、許容可能なSpend lossの範囲内で配信量を削減できるか
 
-> Women's Emailをeligible user全員に送る代わりに、事前に固定したuplift modelによって上位10%のユーザーだけに送ることで、Spend per randomized userを事業上許容可能な範囲に維持しながら配信量を削減できるか？
+を検証します。
 
-本実験の主目的はtargeting policyがSend Allより有意に高いSpendを生むことの証明ではありません。
+---
 
-配信量を約90%削減するpolicyであるため、一定のSpend lossを許容したうえでの**non-inferiority**を主要な意思決定フレームとします。
+## 2. 主要なビジネス上の問い
 
-## 3. Experiment Arms
+> Women's Emailをeligible user全員に送る代わりに、事前に固定したuplift modelによって上位10%のユーザーだけに送ることで、Spend per randomized userを事業上許容可能な範囲に維持しながら、配信量を削減できるか？
 
-### Arm A: Send All
+本実験の主目的は、targeting policyがSend Allより「有意に高いSpend」を生むことを証明することではありません。
 
-Eligible user全員にWomen's Emailを配信します。
+配信量を約90%削減するpolicyであるため、一定のSpend lossを許容した上での**non-inferiority**を主要な意思決定フレームとします。
 
-```text
-policy_A(x) = 1
-```
+---
 
-### Arm B: Frozen Top-10% Targeting
+## 3. 実験群
 
-既存データで学習したuplift modelを用いてuplift scoreを計算し、事前に固定したルールで上位約10%のユーザーのみにWomen's Emailを配信します。
+### Arm A: 一律配信
 
-```text
-if predicted_uplift(x) >= frozen_threshold:
-    send Women's Email
-else:
-    send no email
-```
+eligible user全員にWomen's Emailを配信します。
+
+$$
+\pi_A(x)=1
+$$
+
+### Arm B: 固定済みTop-10%ターゲティング
+
+既存データで学習済みのuplift modelを用いてuplift scoreを計算し、事前に固定したルールに基づいて上位約10%のユーザーのみにWomen's Emailを配信します。
+
+$$
+\pi_B(x)
+=
+\begin{cases}
+1 & \hat\tau(x)\ge c \\
+0 & \hat\tau(x)<c
+\end{cases}
+$$
+
+ここで、
+
+- $\hat\tau(x)$: frozen uplift modelによるpredicted uplift
+- $c$: 実験開始前に固定したTop-10% threshold
+
+です。
 
 Arm B内でTop-10%に入らなかったユーザーにはEmailを配信しません。
 
-## 4. Randomization Unit
+---
 
-Randomization unitはeligible userです。
+## 4. ランダム化単位
 
-同一ユーザーが複数armに入らないよう、user-levelでArm A / Arm Bへ割り付けます。
+Randomization unitはeligible userとします。
 
-推奨allocation ratio:
+同一ユーザーが複数armに入らないよう、ユーザー単位でArm A / Arm Bへ割り付けます。
 
-```text
-1 : 1
-```
+推奨allocation ratioは
 
-## 5. Eligibility Criteria
+$$
+1:1
+$$
 
-実験対象者は少なくとも以下を満たすユーザーとします。
+です。
+
+---
+
+## 5. 適格条件
+
+実験対象者は、少なくとも以下を満たすユーザーとします。
 
 - Women's Email campaignの配信対象としてbusiness上eligible
-- Uplift scoringに必要なpre-treatment featureが利用可能
+- uplift scoringに必要なpre-treatment featureが利用可能
 - Experiment開始前にTreatment assignment可能
 - Outcome measurement期間を定義可能
 
-Model featureにはpre-treatment variableのみを使用します。
+既存分析と同様、model featureにはpre-treatment variableのみを使用します。
 
-## 6. Frozen Policy
+---
 
-本実験の最重要ルールは、**Outcomeを見る前にtargeting policyを完全に固定すること**です。
+## 6. 配信方針の固定
 
-Experiment開始前に以下をfreezeします。
+本実験の最重要ルールは、
+
+> Outcomeを見る前にtargeting policyを完全に固定する
+
+ことです。
+
+以下をexperiment開始前にfreezeします。
 
 ### Feature Set
 
@@ -88,84 +117,138 @@ Experiment開始前に以下をfreezeします。
 
 ### Model
 
-Women's Email vs ControlのT-Learner。
+既存分析で使用したWomen's Email vs ControlのT-Learner。
 
-### Model Parameters
+### Treatment Definition
 
-Random Forestを含む全hyperparametersを固定します。
+- Treatment: Women's Email
+- Control action within targeting policy: No Email
 
 ### Scoring Logic
 
-```text
-predicted_uplift(x)
-= predicted_outcome_treatment(x)
-- predicted_outcome_control(x)
-```
+$$
+\hat\tau(x)
+=
+\hat\mu_1(x)-\hat\mu_0(x)
+$$
+
+を変更しません。
 
 ### Target Fraction
 
-```text
-10%
-```
+$$
+10\%
+$$
+
+に固定します。
 
 ### Threshold
 
-Experiment対象populationに対するuplift score rankingからTop-10%を決定する具体的ルールを事前に固定します。Tie handlingも事前に定義します。
+実験対象populationに対するuplift score rankingからTop-10%を決定する具体的なルールを事前に固定します。
 
-## 7. Policy Selectionに関する注意
+tieが発生する場合の処理方法も事前に定義します。
 
-Top-10% policyは既存held-out analysisで有望なsignalを確認した後に選択されています。
+---
 
-したがって既存分析におけるTop-10%成績は**exploratory evidence**です。
+## 7. 方針選択に関する注意
 
-新しいindependent RCTを開始する前にpolicyをfreezeすることで、次回実験ではそのpolicyをprospectiveに検証できます。
+Top-10% policyは、既存held-out analysisで有望なsignalが観測された後に選択されました。
 
-Experiment開始後に以下を変更しません。
+したがって、既存分析におけるTop-10%の成績は**exploratory evidence**です。
 
-- Top-20%への変更
-- 別modelへの変更
-- Feature追加
-- Threshold変更
-- Outcomeを見ながらmodelを再学習
+一方、新しい独立したRCTを開始する前にpolicyをfreezeすれば、次回実験ではそのpolicyをprospectiveに検証できます。
 
-## 8. Primary Outcome
+実験開始後に以下を行ってはいけません。
 
-Primary Outcomeは**Spend per randomized user**です。
+- Top-20%へ変更する
+- 別モデルへ変更する
+- Featureを追加する
+- Thresholdを変更する
+- Outcomeを見ながらmodelを再学習する
 
-Conversionの有無にかかわらず、全randomized userを分析対象に含めます。
+---
 
-Conversionしたユーザーだけに限定したSpend分析は行いません。
+## 8. 主要アウトカム
 
-## 9. Primary Estimand
+Primary OutcomeはSpend per randomized userとします。
 
-```text
-Delta
-= E[Spend | Frozen Targeting]
-- E[Spend | Send All]
-```
+各ユーザーについて実験期間中のSpendを測定し、conversionの有無にかかわらず全randomized userを分析対象に含めます。
+
+$$
+Y_i=Spend_i
+$$
+
+conversionしたユーザーだけに限定しません。
+
+---
+
+## 9. 主要な推定対象
+
+Primary estimandは、
+
+$$
+\Delta
+=
+E[Y\mid Arm\ B]
+-
+E[Y\mid Arm\ A]
+$$
+
+すなわち、
+
+$$
+\Delta
+=
+E[Spend\mid Frozen\ Targeting]
+-
+E[Spend\mid Send\ All]
+$$
+
+とします。
 
 これはpolicy-level Intent-to-Treat estimandです。
 
 Arm Bで実際にEmailを受け取るユーザーが約10%だけであっても、Arm Bへrandomizeされた全ユーザーを分母に含めます。
 
-## 10. Primary Hypothesis
+---
 
-Non-inferiority marginを`Margin > 0`とします。
+## 10. 主要仮説
 
-```text
-H0: Delta <= -Margin
-H1: Delta >  -Margin
-```
+Non-inferiority marginを
 
-つまり、TargetingによるSpend lossが事前に定めた最大許容lossより小さいかを検証します。
+$$
+M>0
+$$
 
-## 11. Non-inferiority Margin
+とします。
 
-Marginは統計的に都合の良い値ではなく、**business toleranceから決める**必要があります。
+Hypothesisは、
 
-既存分析におけるsample-size sensitivity:
+$$
+H_0:\Delta\le-M
+$$
 
-| NI Margin | Total N: true difference = 0 |
+$$
+H_1:\Delta>-M
+$$
+
+です。
+
+つまり、
+
+> TargetingによるSpend lossが、事前に定めた最大許容loss $M$ より小さいか
+
+を検証します。
+
+---
+
+## 11. 非劣性マージン
+
+$M$ は統計的に都合の良い値ではなく、**business toleranceから決める**必要があります。
+
+既存分析では以下のmarginについてsample-size sensitivityを確認しました。
+
+| NI Margin | True Difference = 0を仮定したTotal N |
 | ---: | ---: |
 | 0.10 | 694,298 |
 | 0.20 | 173,576 |
@@ -175,139 +258,246 @@ Marginは統計的に都合の良い値ではなく、**business toleranceから
 
 必要Nが小さいという理由だけでmarginを大きくしてはいけません。
 
-Margin決定には少なくとも以下が必要です。
+margin決定には少なくとも以下が必要です。
 
 - Gross margin
 - Email delivery cost
 - Campaign operational cost
+- Customer contact cost
 - Opportunity cost
 - Business risk tolerance
 
-## 12. Economic Decision Rule
+---
 
-Spendはrevenue-like metricであり、Profitではありません。
+## 12. 経済的な意思決定ルール
 
-実務では次のようなnet valueで評価します。
+Spendは売上に近い指標であり、Profitではありません。
 
-```text
-Net Value
-= Gross Margin * Spend
-- Delivery Cost
-```
+実務上は、
 
-TargetingとSend Allのdifferenceは概念的に次の形です。
+$$
+\mathrm{NetValue}
+=
+\mathrm{GrossMargin}\times Spend
+-\mathrm{DeliveryCost}
+$$
 
-```text
-Delta Net Value
-= Gross Margin * Delta Spend
-+ Delivery Cost Saving
-```
+を評価すべきです。
 
-Top-10% targetingでは約90%の配信削減が可能なため、一定のSpend lossが存在してもdelivery cost savingによってnet valueではTargetingが優位になる可能性があります。
+Send AllとTargetingのnet value差は、
 
-## 13. Historical Evidence
+$$
+\Delta NetValue
+=
+m\Delta Spend
++c(1-r)
+$$
 
-既存held-out analysisのWomen's Email Top-10% policy:
+と表せます。
 
-```text
-Send All policy value = 1.156
-Top-10% policy value  = 0.855
-Difference            = -0.301
-95% CI                = [-0.745, +0.114]
-```
+ここで、
 
-CIは0を跨いでいるため、Top-10%がSend Allと同等であるとも、明確に劣るとも確定できません。
+- $m$: Gross margin
+- $c$: 1通あたりdelivery cost
+- $r$: Targeting policyの配信率
 
-この結果は次回experiment designのhistorical contextとして使用しますが、prospective hypothesis testの結果として再利用しません。
+です。
 
-## 14. Historical Break-even Analysis
+Top-10% policyでは
 
-Women's Email Top-10%のSend Allに対するpoint-estimate break-even delivery costは約0.334 revenue-units / emailでした。
+$$
+r\approx0.10
+$$
 
-これはprofit thresholdではありません。Formal business decisionには実際のgross marginとdelivery costを使用します。
+なので、約90%の配信削減効果があります。
 
-## 15. Secondary Outcomes
+したがって、一定のSpend lossが存在しても、delivery cost savingによってnet valueではTargetingが優位になる可能性があります。
 
-Primary hypothesisを変更しない範囲で以下をsecondary outcomeとして確認します。
+---
 
-- Conversion Rate
-- Visit Rate
-- Email Volume
-- Total Spend
-- Spend per Email Sent
+## 13. 既存分析から得られた参考値
 
-`Spend per Email Sent`はoperational efficiencyの参考指標であり、primary causal estimandではありません。
+既存held-out analysisにおけるWomen's Email Top-10% policyの結果は以下でした。
 
-## 16. Primary Analysis
+### Gross Spend Policy Value
 
-Intent-to-Treatで実施します。
+Send All:
 
-```text
-estimated_Delta
-= mean_spend_ArmB
-- mean_spend_ArmA
-```
+$$
+1.156
+$$
 
-Primary conclusionはone-sided confidence boundと事前定義したnon-inferiority marginの関係で判断します。
+Top-10%:
 
-Non-inferiority成立条件:
+$$
+0.855
+$$
 
-```text
-lower confidence bound > -Margin
-```
+Difference:
 
-## 17. Variance Estimation
+$$
+Top10-SendAll=-0.301
+$$
+
+95% CI:
+
+$$
+[-0.745,\ 0.114]
+$$
+
+このCIは0をまたいでいるため、Top-10%がSend Allと同等であるとも、Send Allより劣るとも確定できません。
+
+この結果は次回実験を設計するためのhistorical contextとして使用しますが、prospective hypothesis testの結果として再利用しません。
+
+---
+
+## 14. 既存分析の損益分岐点
+
+既存policy evaluationでは、Top-10% targetingとSend Allのbreak-even delivery cost point estimateは
+
+$$
+c^*\approx0.334
+$$
+
+でした。
+
+これは、Spendをそのまま経済価値として扱った場合、1配信あたり約0.334以上のコストが存在すると、Top-10% policyがSend Allよりnet valueで有利になる可能性があることを意味します。
+
+ただしgross marginが不明なため、これはprofit thresholdではありません。
+
+本実験の正式なbusiness decision ruleには、実際のmargin / delivery costを使用します。
+
+---
+
+## 15. 副次アウトカム
+
+Primary hypothesisを変更しない範囲で、以下をsecondary outcomeとして確認します。
+
+### Conversion Rate
+
+$$
+P(Conversion=1)
+$$
+
+### Visit Rate
+
+$$
+P(Visit=1)
+$$
+
+### Email Volume
+
+1 randomized userあたりのEmail配信数。
+
+### Total Spend
+
+Policy population全体の総Spend。
+
+### Spend per Email Sent
+
+Operational efficiencyの参考指標として、
+
+$$
+\frac{Total\ Spend}{Emails\ Sent}
+$$
+
+を計算できます。
+
+ただし、これはprimary causal estimandではありません。
+
+---
+
+## 16. 主要解析
+
+Primary analysisはIntent-to-Treatで実施します。
+
+Arm assignmentに基づき、
+
+$$
+\hat\Delta
+=
+\bar Y_B-\bar Y_A
+$$
+
+を推定します。
+
+Primary conclusionは、$\hat\Delta$ のone-sided confidence boundと事前定義したnon-inferiority margin $M$ の関係で判断します。
+
+Non-inferiorityが成立するには、confidence intervalの下限が
+
+$$
+-M
+$$
+
+を上回る必要があります。
+
+---
+
+## 17. 分散推定
 
 Spendはzero-inflatedかつheavy-tailedです。
 
-Robustness check候補:
+そのため、normal approximationだけに依存せず、
 
 - Welch-type robust inference
 - Heteroskedasticity-robust standard error
 - Bootstrap confidence interval
 
-Primary analysis methodはExperiment開始前に固定します。
+などによるrobustness checkを行います。
 
-## 18. Covariate Adjustment
+Primary analysis methodはexperiment開始前に固定します。
 
-Randomizationによりunadjusted ITT estimatorは因果推論上妥当です。
+---
+
+## 18. 共変量調整
+
+Randomizationによってunadjusted ITT estimatorは因果推論上妥当です。
 
 一方、Spendの分散が大きいため、precision improvementを目的としてpre-treatment covariatesによるadjustmentを検討します。
 
-```text
-Spend
-= intercept
-+ policy_arm_effect
-+ pre_treatment_covariates
-+ error
-```
+基本形は、
 
-CovariatesはExperiment開始前に固定し、Outcomeを見た後に都合の良い変数だけを選択しません。
+$$
+Y_i
+=
+\alpha
++\tau Z_i
++\beta^\top X_i
++\epsilon_i
+$$
 
-Candidate covariates:
+です。
 
-- `recency`
-- `history`
-- `history_segment`
-- `mens`
-- `womens`
-- `zip_code`
-- `newbie`
-- `channel`
+ここで、
 
-## 19. Sample Size Planning
+- $Z_i$: Arm B indicator
+- $X_i$: pre-treatment covariates
+- $\tau$: adjusted policy effect
 
-Historical held-out SD:
+です。
 
-```text
-Women's Email SD = 16.76
-Control SD       = 10.25
-Planning SD      = 16.76
-```
+Covariatesはexperiment開始前に固定し、Outcomeを見た後に「効いた変数だけ」を選択しません。
 
-大きい方をconservative planning valueとして使用します。
+---
 
-### Two-sided MDE sensitivity
+## 19. サンプルサイズ設計
+
+既存held-out dataでは、
+
+- Women's Email SD: 約16.76
+- Control SD: 約10.25
+
+でした。
+
+保守的なplanning valueとして、
+
+$$
+\sigma_{plan}=16.76
+$$
+
+を使用しました。
+
+### Two-sided MDE Sensitivity
 
 | Spend/User MDE | Total N |
 | ---: | ---: |
@@ -317,7 +507,9 @@ Planning SD      = 16.76
 | 0.40 | 55,090 |
 | 0.50 | 35,258 |
 
-### Non-inferiority sensitivity: true difference = 0
+### Non-inferiority Sensitivity
+
+True differenceを0と仮定した場合:
 
 | NI Margin | Total N |
 | ---: | ---: |
@@ -327,15 +519,17 @@ Planning SD      = 16.76
 | 0.40 | 43,394 |
 | 0.50 | 27,772 |
 
-## 20. Historical Effect Sensitivity
+---
 
-Historical point estimate:
+## 20. Historical Effectを仮定したSensitivity
 
-```text
-Delta = -0.300664
-```
+既存held-out estimate、
 
-これがtrue effectに近いと仮定すると:
+$$
+\Delta=-0.300664
+$$
+
+が真の効果に近いと仮定すると、
 
 | NI Margin | Feasibility |
 | ---: | ---: |
@@ -345,20 +539,40 @@ Delta = -0.300664
 | 0.40 | Total N 約703,610 |
 | 0.50 | Total N 約174,734 |
 
-これは、小さいmarginでnon-inferiorityを証明することが困難である可能性を示します。
+となります。
+
+これは、現在のpoint estimateが再現する場合、小さいmarginでnon-inferiorityを証明することが困難であることを示します。
+
+ただし、このhistorical estimateを次回experimentの真のeffectとして固定しません。
+
+---
 
 ## 21. Randomization Checks
 
-Outcome分析前に以下を確認します。
+Experiment開始後、outcome分析前に以下を確認します。
 
-- Sample Ratio Mismatch
-- Pre-treatment covariate balance
-- Send All armのdelivery fidelity
-- Targeting armのTop-10% policy fidelity
+### Sample Ratio Mismatch
 
-Balance resultを見てexperiment sampleを恣意的に変更しません。
+Arm A / Arm Bのallocationが設計通りであるか確認します。
 
-## 22. Implementation Fidelity
+### Pre-treatment Balance
+
+主要covariateについてSMDを確認します。
+
+ただしbalance testの結果を見てexperiment sampleを恣意的に変更しません。
+
+### Treatment Delivery
+
+- Send All armで予定通り配信されたか
+- Targeting armでTop-10%ルールが正しく適用されたか
+
+を確認します。
+
+---
+
+## 22. 実装忠実度
+
+Targeting policyの実験では、統計的randomizationだけでなくpolicy implementationの正確性が重要です。
 
 最低限、以下をlogとして保存します。
 
@@ -372,59 +586,109 @@ Balance resultを見てexperiment sampleを恣意的に変更しません。
 - feature version
 - experiment version
 
-これによりstatistical designとproduction implementationの問題を切り分けます。
+これにより、Randomizationは正しかったがproduction logicが違っていた、という問題を切り分けられるようにします。
 
-## 23. Missing Data
+---
 
-Randomization後のmissing outcomeが発生した場合、missingnessをArm別に確認します。
+## 23. 欠測データ
 
-Treatment assignmentによってmissingnessが異なる場合、単純なcomplete-case analysisにはbiasの可能性があります。
+Randomization後のmissing outcomeが発生した場合、missingnessをTreatment assignment別に確認します。
 
-Missing-data handling ruleはExperiment開始前に定義します。
+Outcome missingnessがTreatmentによって異なる場合、単純なcomplete-case analysisにはbiasの可能性があります。
 
-## 24. Multiple Testing
+Missing-data handling ruleはexperiment開始前に定義します。
 
-Primary testは1つに固定します。
+可能な限り、randomized user全員についてSpendを0を含めて観測可能な設計とします。
+
+---
+
+## 24. 多重検定
+
+### Primary Test
+
+Primary testは、
 
 > Women's Frozen Top-10% Targeting vs Send AllのSpend non-inferiority
 
-Visit / Conversionなどのsecondary outcomesはprimary decisionと分離します。Formal significance claimを行う場合はmultiple-testing correctionを適用します。
+の1つとします。
 
-## 25. Decision Criteria
+このprimary hypothesisについてalphaを確保します。
+
+### Secondary Outcomes
+
+Visit / Conversion等のsecondary outcomeはprimary decisionと分離します。
+
+複数secondary hypothesisについてformal significance claimsを行う場合はHolm等のmultiple-testing correctionを適用します。
+
+---
+
+## 25. 意思決定基準
 
 ### Targetingを採用できる条件
+
+最低限、以下を満たす必要があります。
 
 1. Primary non-inferiority criterionを満たす
 2. Frozen policyがproduction上正しく実装されている
 3. 配信削減量が想定通りである
 4. Gross margin / delivery costを含めたnet valueがSend All以上
-5. Customer experience上の重大な悪化がない
+5. Safety / customer experience上の重大な悪化がない
 
 ### Send Allを維持する条件
+
+以下のいずれかの場合、一律配信を維持します。
 
 - Non-inferiorityを示せない
 - Net valueがSend Allを下回る
 - Targeting implementationが不安定
-- Experiment power不足で結論不能
+- Experiment powerが不足して結論不能
 
-## 26. Failure to Rejectの解釈
+### Send None
+
+Women's Email自体がControlより正のATEを持つ既存証拠があるため、現在の主要候補ではありません。
+
+ただし将来的にdelivery costやbusiness constraintが大きく変化する場合は再評価します。
+
+---
+
+## 26. 棄却できなかった場合の解釈
 
 Non-inferiorityを示せなかった場合、TargetingがSend Allより劣ると証明されたとは限りません。
 
-- **Clear Inferiority:** Confidence intervalがNI marginより明確に悪い
-- **Inconclusive:** Confidence intervalが広くNI boundaryを跨ぐ
+以下を区別します。
 
-後者は`Evidence insufficient`と判断します。
+### Clear Inferiority
 
-## 27. Experiment Stop Rules
+Effect estimateとconfidence intervalがnon-inferiority marginより明確に悪い。
 
-Defaultはfixed-sample designです。
+### Inconclusive
+
+Confidence intervalが広く、non-inferiority boundaryをまたぐ。
+
+後者の場合は、**Evidence insufficient**と判断します。
+
+---
+
+## 27. 実験停止ルール
+
+通常の固定sample designを基本とします。
 
 途中結果を繰り返し確認し、有意になった時点で停止する運用は行いません。
 
-Sequential designを使用する場合は、interim timing、alpha spending、stop boundary、futility ruleを事前に定義します。
+Sequential designを使用する場合は、
 
-## 28. Pre-registration Checklist
+- Interim timing
+- Alpha spending
+- Stop boundary
+- Futility rule
+
+をexperiment開始前に定義します。
+
+本設計書のdefaultでは固定sample designとします。
+
+---
+
+## 28. 事前登録チェックリスト
 
 Experiment開始前に以下を確定します。
 
@@ -452,27 +716,42 @@ Experiment開始前に以下を確定します。
 - [ ] Delivery cost
 - [ ] Final decision threshold
 
-すべてOutcome観測前に確定します。
+すべてをOutcome観測前に確定します。
 
-## 29. Current Recommendation
+---
 
-現時点では、**Women's EmailのSend Allをproduction baselineとして維持する**のが妥当です。
+## 29. 現時点の推奨方針
 
-Top-10% targetingは`promising but unvalidated policy`として扱います。
+現時点では、Women's Emailの一律配信をproduction baselineとして維持します。
 
-Business-justified non-inferiority marginと実行可能なsample sizeを確定できた場合のみprospective RCTへ進みます。
+Top-10% targetingは、**promising but unvalidated policy**として扱います。
 
-## 30. Experiment Summary
+本番置換は行わず、business-justified non-inferiority marginと実行可能なsample sizeを確定できた場合のみprospective RCTへ進みます。
 
-| Item | Design |
-| --- | --- |
-| Control Policy | Send All |
-| Candidate Policy | Frozen Women's Email Top-10% Uplift Targeting |
-| Primary Outcome | Spend per randomized user |
-| Primary Framework | Non-inferiority |
-| Randomization | 1:1 user-level randomization |
-| Targeting Rate | 約10% |
-| Analysis Principle | Intent-to-Treat |
-| Model Rule | Experiment開始前に完全freeze |
+---
 
-Final decisionはstatistical significanceだけでなく、**statistical evidence + delivery cost + gross margin + operational feasibility**を統合して判断します。
+## 30. 実験設計サマリー
+
+- Control Policy: Send All
+- Candidate Policy: Frozen Women's Email Top-10% Uplift Targeting
+- Primary Outcome: Spend per randomized user
+- Primary Estimand: $E[Spend\mid Targeting]-E[Spend\mid SendAll]$
+- Primary Framework: Non-inferiority
+- Randomization: 1:1 user-level randomization
+- Targeting Rate: 約10%
+- Primary Statistical Principle: Intent-to-Treat
+- Model Rule: 実験開始前に完全freeze
+
+最終意思決定は、
+
+$$
+Statistical\ Evidence
++
+Delivery\ Cost
++
+Gross\ Margin
++
+Operational\ Feasibility
+$$
+
+を統合して判断します。
