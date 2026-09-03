@@ -2,232 +2,117 @@
 
 ## 1. 分析目的
 
-本プロジェクトでは、Hillstrom Email Marketing Datasetを用いて、CRMキャンペーンの因果効果とターゲティング配信の意思決定価値を評価する。
-
-中心となるBusiness Questionは以下である。
+本プロジェクトでは、Hillstrom Email Marketing Datasetを用いて、CRMキャンペーンの因果効果とtargeting policyの意思決定価値を評価します。
 
 > CRMキャンペーンは本当にユーザー行動を改善したのか。全員に配信すべきか。それとも効果のあるユーザーだけに配信すべきか？
 
-この問いに対して、分析を以下の順序で進めた。
+分析フロー:
 
-1. データ品質の確認
-2. ランダム化の妥当性確認
-3. 実験分析母集団の構築
-4. A/B Testの記述統計
-5. 平均処置効果の推定
-6. Treatment Effect Heterogeneityの検証
+1. Data Quality Audit
+2. Randomization Validation
+3. Experiment Population
+4. A/B Metrics
+5. Average Treatment Effect
+6. Treatment Effect Heterogeneity
 7. Uplift Modeling
 8. Policy Evaluation
 9. Prospective Experiment Design
 10. Power / Feasibility Analysis
 
-分析では、単に予測精度の高いモデルを構築することではなく、**因果推論から意思決定まで一貫した分析フローを構築すること**を重視した。
-
----
+目的は単に予測精度の高いモデルを作ることではなく、**因果推論からbusiness decisionまで一貫した分析フローを構築すること**です。
 
 ## 2. データ
 
-### 2.1 Dataset
+観測単位はユーザーで、総行数は64,000です。
 
-使用データはHillstrom Email Marketing Datasetである。
+Treatment:
 
-観測単位はユーザーで、総行数は64,000行。
+- `No E-Mail`
+- `Mens E-Mail`
+- `Womens E-Mail`
 
-Treatmentは以下の3群から構成される。
+分析用label:
 
-* `No E-Mail`
-* `Mens E-Mail`
-* `Womens E-Mail`
+- `control`
+- `mens_email`
+- `womens_email`
 
-分析用に以下へ正規化した。
+主要Outcome:
 
-* `control`
-* `mens_email`
-* `womens_email`
+- `visit`
+- `conversion`
+- `spend`
 
-### 2.2 Outcome
-
-主要outcomeは以下の3つ。
-
-* `visit`
-* `conversion`
-* `spend`
-
-`visit` と `conversion` はbinary outcome。
-
-`spend` は連続値として扱う。
-
-Spendについては、conversionしたユーザーだけに限定せず、**ランダム化された全ユーザーを分母としたSpend per randomized user**を評価する。
-
-これはconversionがpost-treatment variableであり、
-
-$$
-E[Spend \mid Conversion=1]
-$$
-
-のような条件付き分析を行うと、treatment後のselectionによるbiasが発生するためである。
-
----
+Spendはconversionしたユーザーだけに限定せず、**全randomized userを分母としたSpend per randomized user**として評価します。Conversionはpost-treatment variableであるため、conversion条件付きのSpend比較は行いません。
 
 ## 3. Pre-treatment Covariates
 
-Treatment assignment以前に決まっている変数のみをcovariateとして使用する。
+Treatment assignment以前に決まっている以下の変数のみをcovariateとして使用します。
 
-使用したpre-treatment featuresは以下。
+- `recency`
+- `history`
+- `history_segment`
+- `mens`
+- `womens`
+- `zip_code`
+- `newbie`
+- `channel`
 
-* `recency`
-* `history`
-* `history_segment`
-* `mens`
-* `womens`
-* `zip_code`
-* `newbie`
-* `channel`
-
-一方、以下はpost-treatment outcomeであるため、model featureとして使用しない。
-
-* `visit`
-* `conversion`
-* `spend`
-
-この制約はrandomization validation、heterogeneity analysis、uplift modelingのすべてで維持する。
-
----
+`visit`、`conversion`、`spend`はpost-treatment outcomeなのでmodel featureには使用しません。
 
 ## 4. Data Quality Audit
 
-`sql/00_data_audit.sql` を用いて、分析前にデータ品質を確認した。
+`sql/00_data_audit.sql` で以下を確認します。
 
-主な確認項目は以下。
+- Row count
+- Missingness
+- Treatment domain
+- Binary variable domain
+- Numeric range
+- Outcome consistency
+- Duplicate-like row patterns
 
-### 4.1 Row Count
-
-総行数が64,000行であることを確認した。
-
-### 4.2 Missingness
-
-全列についてNULLまたはblank valueの有無を確認した。
-
-### 4.3 Treatment Domain
-
-Treatmentが期待する3群のみから構成されていることを確認した。
-
-### 4.4 Binary Variable Domain
-
-以下のbinary variableについて、
-
-$$
-\{0,1\}
-$$
-
-以外の値が存在しないことを確認した。
-
-* `visit`
-* `conversion`
-* `mens`
-* `womens`
-* `newbie`
-
-### 4.5 Numeric Range
-
-`recency`、`history`、`spend`について最小値、最大値、平均、percentile等を確認した。
-
-### 4.6 Outcome Consistency
-
-以下の論理矛盾を確認した。
-
-* `conversion = 1` かつ `spend <= 0`
-* `conversion = 0` かつ `spend > 0`
-* `conversion = 1` かつ `visit = 0`
-* `spend < 0`
-
-いずれも該当行はなかった。
-
-### 4.7 Duplicate-like Rows
-
-明示的なcustomer IDは存在しない。
-
-全observed columnsが完全一致する行は存在するが、これらをduplicate customerとはみなさない。
-
-異なる実験参加者が同じ観測値を持つ可能性があるため、
-
-> 観測値が同一であることだけを理由に行を削除しない。
-
-という方針を採用した。
-
----
+明示的なcustomer IDは存在しないため、全observed columnsが一致する行だけを理由にduplicate customerとは判断せず、削除しません。
 
 ## 5. Randomization Validation
 
-`src/validate_randomization.py` を用いて、実験割付に重大な異常がないか確認した。
+`src/validate_randomization.py` でSample Ratio Mismatchとpre-treatment covariate balanceを確認します。
 
-### 5.1 Sample Ratio Mismatch
+### Sample Ratio Mismatch
 
-3群が概ね1:1:1で割り付けられているという帰無仮説に対してchi-square testを実施した。
+3群が1:1:1で割り付けられているという帰無仮説に対してchi-square testを実施します。
 
-$$
-H_0:
-p_{control}
-=
-p_{mens}
-=
-p_{womens}
-=
-\frac{1}{3}
-$$
+```text
+H0: p_control = p_mens = p_womens = 1/3
+```
 
-結果：
+結果:
 
-* Chi-square = 0.203
-* p-value = 0.904
+```text
+Chi-square = 0.203
+p-value    = 0.904
+```
 
-Sample Ratio Mismatchを示す証拠は確認されなかった。
+SRMを示す証拠は確認されませんでした。
 
-### 5.2 Standardized Mean Difference
+### Standardized Mean Difference
 
-pre-treatment covariatesについて、Treatment群間のbalanceをStandardized Mean Differenceで確認した。
+連続変数のpairwise SMDは次の形で計算します。
 
-連続変数では、
+```text
+SMD = (mean_treatment - mean_control)
+      / sqrt((variance_treatment + variance_control) / 2)
+```
 
-$$
-SMD
-=
-\frac{
-\bar X_T-\bar X_C
-}{
-\sqrt{
-\frac{
-s_T^2+s_C^2
-}{2}
-}
-}
-$$
+Binary / categorical covariatesもlevel indicatorベースで評価します。
 
-を使用。
+最大absolute SMDは約0.017で、`|SMD| >= 0.10`となるcovariateはありませんでした。
 
-binary / categorical variableについても、level indicatorベースでpairwise balanceを評価した。
-
-最大absolute SMDは約0.017であり、
-
-$$
-|SMD| \ge 0.10
-$$
-
-となるcovariateはなかった。
-
-したがって、
-
-> Sample Ratio Mismatchまたは重大なpre-treatment covariate imbalanceを示す証拠は確認されなかった。
-
-と解釈した。
-
-なお、これはrandomizationが完全に成功したことを証明するものではない。
-
----
+これはrandomizationの成功を証明するものではなく、**SRMや重大なobserved covariate imbalanceを示す証拠が確認されなかった**というdiagnostic resultです。
 
 ## 6. Experiment Population
 
-`sql/01_experiment_population.sql` でcanonical experiment populationを構築した。
+`sql/01_experiment_population.sql` でcanonical populationを構築します。
 
 BigQuery table:
 
@@ -235,774 +120,291 @@ BigQuery table:
 ceus.experiment_population
 ```
 
-### 6.1 Treatment Normalization
-
-Treatment labelを以下へ変換した。
+Treatment normalization:
 
 ```text
-No E-Mail   -> control
-Mens E-Mail -> mens_email
-Womens E-Mail -> womens_email
+No E-Mail      -> control
+Mens E-Mail    -> mens_email
+Womens E-Mail  -> womens_email
 ```
 
-### 6.2 Eligibility
+Eligibility flags:
 
-以下のeligibility flagを個別に管理する。
+- `treatment_eligible`
+- `pretreatment_eligible`
+- `visit_eligible`
+- `conversion_eligible`
+- `spend_eligible`
+- `outcome_consistent`
+- `experiment_eligible`
 
-* `treatment_eligible`
-* `pretreatment_eligible`
-* `visit_eligible`
-* `conversion_eligible`
-* `spend_eligible`
-* `outcome_consistent`
-* `experiment_eligible`
-
-`experiment_eligible`はTreatmentとpre-treatment covariatesの妥当性を基準とする。
-
-Outcomeのmissingnessやinvalidityはmetric-specific eligibilityで管理する。
-
-この設計により、特定outcomeの欠損が他outcomeの分析対象まで不必要に除外することを防ぐ。
-
----
+`experiment_eligible`はTreatmentとpre-treatment covariatesの妥当性のみで定義し、outcome eligibilityはmetric-specificに管理します。
 
 ## 7. A/B Metrics
 
-`sql/02_ab_metrics.sql` ではTreatment armごとのdescriptive metricsのみを作成する。
+`sql/02_ab_metrics.sql` ではdescriptive metricsのみを作成します。
 
-作成する主な指標は以下。
+- N
+- Visit count / rate
+- Conversion count / rate
+- Total Spend
+- Mean Spend per randomized user
+- Standard deviation
 
-### Visit
-
-* analysis N
-* visit count
-* visit rate
-* mean
-* standard deviation
-
-### Conversion
-
-* analysis N
-* conversion count
-* conversion rate
-* mean
-* standard deviation
-
-### Spend
-
-* analysis N
-* total spend
-* mean spend per randomized user
-* standard deviation
-
-このSQLではp-value、confidence interval、significance判定は行わない。
-
-記述統計と推測統計の責務を分離するため、inferential analysisはPython側で行う。
-
----
+SQLではp-valueやconfidence intervalを計算せず、記述統計と推測統計の責務を分離します。
 
 ## 8. Average Treatment Effect
 
-`src/estimate_ate.py` を用いて、以下の6つのITT effectを推定した。
+`src/estimate_ate.py` で以下の6つのITT effectを推定します。
 
-### Comparisons
+```text
+2 treatment comparisons x 3 outcomes = 6 tests
+```
 
-* Men's Email vs Control
-* Women's Email vs Control
+Comparisons:
 
-### Outcomes
+- Men's Email vs Control
+- Women's Email vs Control
 
-* Visit
-* Conversion
-* Spend
+Outcomes:
 
-したがって、
+- Visit
+- Conversion
+- Spend
 
-$$
-2 Treatments
-\times
-3 Outcomes
-=
-6 Tests
-$$
+### Binary Outcomes
 
-を主要なATE familyとした。
+Visit / Conversionではdifference in proportionsを推定します。
 
-### 8.1 Binary Outcomes
+```text
+ATE = treatment_rate - control_rate
+```
 
-Visit / Conversionではdifference in proportionsを推定する。
+Confidence intervalはunpooled SEを使い、hypothesis testはpooled null varianceによるtwo-proportion z-testを使います。
 
-$$
-ATE
-=
-\hat p_T
--
-\hat p_C
-$$
+### Spend
 
-confidence intervalはunpooled standard errorを用いる。
+Spendではdifference in meansを推定します。
 
-Hypothesis testではnull hypothesis下のpooled varianceを用いたz-testを使用する。
+```text
+ATE = mean_spend_treatment - mean_spend_control
+```
 
-### 8.2 Spend
+群間で分散が異なる可能性を考慮してWelch inferenceを使用し、zero-inflated / heavy-tailed distributionへのrobustness checkとしてpercentile bootstrap CIも計算します。
 
-Spendではdifference in meansを推定する。
+### Multiple Testing
 
-$$
-ATE
-=
-\bar Y_T
--
-\bar Y_C
-$$
-
-分散がTreatment群で異なる可能性を考慮し、Welch inferenceを使用する。
-
-さらに、Spendの分布がzero-inflatedかつheavy-tailedであることから、percentile bootstrap confidence intervalも計算する。
-
-Welch CIとbootstrap CIの整合性をrobustness checkとして利用する。
-
-### 8.3 Multiple Testing
-
-6つの事前定義されたTreatment × Outcome comparisonについて、Family-Wise Error Rateを制御するためHolm correctionを適用する。
-
-Holm-adjusted p-valueを主要なmultiple-testing-adjusted inferenceとして使用する。
-
----
+事前定義した6比較にHolm correctionを適用し、Family-Wise Error Rateを制御します。
 
 ## 9. Segment Analysis
 
-`sql/03_segment_analysis.sql` でpre-treatment covariates別のdescriptive treatment effectを作成する。
+`sql/03_segment_analysis.sql` でpre-treatment covariates別のdescriptive liftを作成します。
 
-対象segment：
+対象:
 
-* `recency`
-* `history_segment`
-* `mens`
-* `womens`
-* `newbie`
-* `channel`
-* `zip_code`
+- `recency`
+- `history_segment`
+- `mens`
+- `womens`
+- `newbie`
+- `channel`
+- `zip_code`
 
-各segmentについて、
-
-```text
-Treatment × Segment
-```
-
-単位で、
-
-* N
-* Visit rate
-* Conversion rate
-* Mean spend
-* Control-relative descriptive lift
-
-を計算する。
-
-このSQLの目的は**hypothesis generation**であり、segment-level p-valueを大量に生成することではない。
-
-Raw subgroup liftだけでheterogeneityを断定しない。
-
----
+目的はhypothesis generationです。Raw subgroup liftだけでheterogeneityを断定しません。
 
 ## 10. Treatment Effect Heterogeneity
 
-`src/heterogeneity.py` でinteraction modelを推定する。
+`src/heterogeneity.py` ではinteraction modelを推定します。
 
-一般形は、
+```text
+Y = beta0 + beta1*T + beta2*X + beta3*(T*X) + error
+```
 
-$$
-Y_i
-=
-\beta_0
-+
-\beta_1T_i
-+
-\beta_2X_i
-+
-\beta_3(T_i\times X_i)
-+
-\epsilon_i
-$$
+Treatment effect heterogeneityはinteraction coefficient `beta3` で評価します。
 
-とする。
+OLSにHC3 robust standard errorを使用し、binary outcomeではLinear Probability Modelとしてoriginal outcome scaleで解釈します。
 
-Treatment effect heterogeneityはinteraction coefficient、
+Targeted follow-up family:
 
-$$
-\beta_3
-$$
+- Women's Email x `womens`
+- Men's Email x `mens`
+- Visit / Conversion / Spend
+- 合計6 tests
 
-によって評価する。
+このfamilyにはHolm correctionを適用します。ただしdescriptive subgroup review後にhypothesisを選択しているため、結果はconfirmatoryではなくexploratory / targeted follow-upとして解釈します。
 
-### 10.1 Robust Standard Error
-
-OLS modelにHC3 robust standard errorを適用する。
-
-これはbinary outcomeを含め、interaction effectをoriginal outcome scaleで直接解釈するためである。
-
-binary outcomeではLinear Probability Modelとして扱う。
-
-### 10.2 Targeted Follow-up Interaction
-
-descriptive subgroup analysis後に以下のmoderator-treatment pairを選択した。
-
-* Women's Email × `womens`
-* Men's Email × `mens`
-
-各interactionを、
-
-* Visit
-* Conversion
-* Spend
-
-の3outcomeについて評価する。
-
-合計6interaction testにHolm correctionを適用する。
-
-ただし、これらはdescriptive subgroup review後に選択されたため、**confirmatoryではない**。
-
-分析上は、
-
-> targeted follow-up interaction analysis
-
-として扱う。
-
-Holm correctionはこのfollow-up family内のmultiplicityを制御するが、仮説選択そのものによるpost-selection biasを除去するものではない。
-
-### 10.3 Exploratory Channel Analysis
-
-`channel`についてはglobal Treatment × Channel interactionをjoint Wald testで評価する。
-
-こちらはexploratory familyとしてtargeted follow-up familyとは分離して扱う。
-
----
+`channel` interactionは別のexploratory familyとして扱います。
 
 ## 11. Uplift Modeling
 
-`src/uplift_model.py` では、Conditional Average Treatment Effectのrankingを目的としてT-Learnerを構築する。
+`src/uplift_model.py` ではT-Learnerを構築します。
 
-3-arm treatmentを直接1つのbinary uplift modelに変換せず、以下を別問題として扱う。
+3-arm treatmentを1つのbinary problemにせず、以下を別々に扱います。
 
-* Men's Email vs Control
-* Women's Email vs Control
+- Men's Email vs Control
+- Women's Email vs Control
 
-### 11.1 T-Learner
+Treatment modelとControl modelを別々に学習し、predicted upliftを次の差として定義します。
 
-Treatment armとControl armで別々のoutcome modelを学習する。
+```text
+predicted_uplift(x)
+= predicted_outcome_treatment(x)
+- predicted_outcome_control(x)
+```
 
-$$
-\hat\mu_1(x)
-=
-\hat E[Y\mid T=1,X=x]
-$$
+Random Forestを使用し、pre-treatment covariatesのみをfeatureにします。
 
-$$
-\hat\mu_0(x)
-=
-\hat E[Y\mid T=0,X=x]
-$$
+Train / held-out test splitを行い、training dataでpolicy performanceを評価しません。
 
-predicted upliftは、
+Primary evaluation metrics:
 
-$$
-\hat\tau(x)
-=
-\hat\mu_1(x)
--
-\hat\mu_0(x)
-$$
+- Qini
+- AUUC
+- Uplift@10%
+- Uplift@20%
+- Uplift@30%
+- Uplift@50%
 
-とする。
+通常のAUC / RMSEをprimary metricにしない理由は、目的がoutcome predictionではなくtreatment effect rankingだからです。
 
-モデルはRandom Forestを使用する。
-
-### 11.2 Features
-
-model featureはpre-treatment covariatesのみ。
-
-Outcomeやpost-treatment variableは入力しない。
-
-### 11.3 Train / Test Split
-
-各binary treatment comparisonについてtrain / held-out testに分割する。
-
-Treatment allocationとrare outcome eventを維持するため、Treatment × Outcome Eventでstratificationを行う。
-
-Model fittingはtrain setのみ。
-
-Uplift ranking evaluationはheld-out test setのみで行う。
-
-### 11.4 Evaluation Metrics
-
-通常のpredictive AUCやRMSEをprimary metricとはしない。
-
-uplift modelの目的はoutcome predictionではなく、
-
-> Treatment effectが大きいユーザーを上位にrankingできるか
-
-だからである。
-
-使用指標：
-
-* Qini
-* AUUC
-* Uplift@10%
-* Uplift@20%
-* Uplift@30%
-* Uplift@50%
-
-### 11.5 Transformed Outcome
-
-Held-out ranking evaluationではrandomized treatment propensityを用いたtransformed outcome、
-
-$$
-\psi_i
-=
-\frac{T_iY_i}{p}
--
-\frac{(1-T_i)Y_i}{1-p}
-$$
-
-を利用する。
-
-randomized assignment下では、
-
-$$
-E[\psi_i\mid X]
-=
-CATE(X)
-$$
-
-となる。
-
-### 11.6 Interpretation
-
-Predicted upliftは観測可能なindividual causal effectそのものではない。
-
-Individual Treatment Effectは各ユーザーについて同時に観測できないため、
-
-> predicted upliftはmodel-based estimate
-
-として扱う。
-
-Model usefulnessはheld-out ranking performanceで評価する。
-
----
+Predicted upliftは各ユーザーの真のIndividual Treatment Effectではなく、model-based estimateとして扱います。
 
 ## 12. Policy Evaluation
 
-`src/policy_evaluation.py` ではuplift modelを実際の配信policyとして評価する。
+`src/policy_evaluation.py` で以下のpolicyをheld-out observations上で比較します。
 
-比較policy：
+- Send None
+- Send All
+- Top 10%
+- Top 20%
+- Top 30%
+- Top 50%
 
-* Send None
-* Send All
-* Top 10%
-* Top 20%
-* Top 30%
-* Top 50%
+Policy valueはInverse Propensity Weightingで推定します。
 
-### 12.1 Policy Value
+```text
+V(policy)
+= E[
+    policy(X) * T * Y / e
+    + (1 - policy(X)) * (1 - T) * Y / (1 - e)
+  ]
+```
 
-deterministic policy \(\pi(X)\) のvalueをInverse Propensity Weightingで推定する。
+BootstrapはTreatment assignment内でstratifiedに実施します。このbootstrapは**既に学習済みのmodelを固定した条件下でのevaluation uncertainty**を評価し、model retraining uncertaintyは含みません。
 
-$$
-V(\pi)
-=
-E
-\left[
-\pi(X)
-\frac{TY}{e}
-+
-(1-\pi(X))
-\frac{(1-T)Y}{1-e}
-\right]
-$$
-
-ここで、
-
-* \(T\)：randomized treatment indicator
-* \(Y\)：observed outcome
-* \(e\)：treatment propensity
-* \(\pi(X)\)：model-based treatment rule
-
-とする。
-
-### 12.2 Held-out Evaluation
-
-Policy evaluationはuplift model trainingに使用していないheld-out observationsのみで実施する。
-
-Training data上でpolicy valueを評価しない。
-
-### 12.3 Bootstrap
-
-Policy valueとpolicy differenceのuncertaintyはTreatment arm内でstratified bootstrapを行って推定する。
-
-このbootstrapは、
-
-> 既に学習済みのuplift modelを固定した条件下でのevaluation uncertainty
-
-を評価する。
-
-Model retraining uncertaintyまでは含まない。
-
-### 12.4 Best Top-k Selection
-
-Top 10%、20%、30%、50%をすべて比較するが、同じheld-out dataを見た後に最も良いTop-kを選び、
-
-> optimal policy
-
-として確定しない。
-
-その選択はexploratoryであり、新しいprospective dataでvalidationが必要である。
-
----
+同じheld-out sample上で最良だったTop-kをproduction-optimal policyとは呼ばず、prospective validation対象とします。
 
 ## 13. Break-even Delivery Cost
 
-Spend outcomeについて、delivery costを考慮したpolicy comparisonを行う。
+Spend outcomeではdelivery costを考慮したpolicy comparisonを行います。
 
-Policy \(\pi\) のtreatment rateを、
+```text
+Net Value(policy, cost)
+= Policy Value - cost * treatment_rate
+```
 
-$$
-r_\pi
-$$
+Send Allとtargetingのbreak-even thresholdを計算します。
 
-1配信あたりcostを、
+Hillstrom Datasetにはgross margin、delivery cost、profit情報がないため、算出値は**revenue-equivalent break-even threshold**としてのみ解釈します。
 
-$$
-c
-$$
+実務では以下の形で評価すべきです。
 
-とすると、
-
-$$
-NetValue(\pi,c)
-=
-V(\pi)
--
-cr_\pi
-$$
-
-と定義する。
-
-### 13.1 Send NoneとのBreak-even
-
-$$
-V(\pi)-cr_\pi
-=
-V(None)
-$$
-
-より、
-
-$$
-c^*
-=
-\frac{
-V(\pi)-V(None)
-}{
-r_\pi
-}
-$$
-
-を求める。
-
-### 13.2 Send AllとのBreak-even
-
-$$
-V(\pi)-cr_\pi
-=
-V(All)-c
-$$
-
-より、
-
-$$
-c^*
-=
-\frac{
-V(All)-V(\pi)
-}{
-1-r_\pi
-}
-$$
-
-となる。
-
-Targeting policyのtreatment rateが1未満の場合、delivery costがこのthresholdを上回ると、gross outcomeを一部失ってもdelivery savingによってSend Allより高いnet valueを持つ可能性がある。
-
-### 13.3 Economic Limitation
-
-Hillstrom Datasetには以下が存在しない。
-
-* 実際のdelivery cost
-* gross margin
-* contribution margin
-* profit
-
-したがって、break-even thresholdはprofit thresholdではなく、
-
-> revenue-equivalent break-even threshold
-
-としてのみ解釈する。
-
-実務上は、
-
-$$
-NetValue
-=
-GrossMargin
-\times
-IncrementalSpend
--
-DeliveryCost
-$$
-
-で判断する必要がある。
-
----
+```text
+Net Value = Gross Margin * Incremental Spend - Delivery Cost
+```
 
 ## 14. Prospective Experiment Design
 
-Current uplift policyをそのまま本番導入せず、prospective RCTでvalidationする設計とする。
+Women's Top-10% targetingはproductionへ即導入せず、prospective RCTでvalidationします。
 
-Women's Emailについて、
+- Arm A: Send All
+- Arm B: Frozen Top-10% Targeting Policy
 
-### Arm A
+Experiment開始前にfeature set、model type、hyperparameters、trained model、scoring rule、target fraction、thresholdをfreezeします。
 
-Send All
+Primary estimand:
 
-### Arm B
-
-Frozen Top-10% Targeting Policy
-
-とする。
-
-Frozen policyでは以下をexperiment開始前に固定する。
-
-* feature set
-* model type
-* model parameters
-* trained model
-* uplift scoring rule
-* target fraction
-* threshold
-
-Outcomeを確認した後に変更しない。
-
-Primary estimandは、
-
-$$
-\Delta
-=
-E[Spend\mid Targeting]
--
-E[Spend\mid SendAll]
-$$
-
-とする。
-
----
+```text
+Delta = E[Spend | Targeting] - E[Spend | Send All]
+```
 
 ## 15. Power Analysis
 
-`src/power_analysis.py` では、次回RCTに必要なsample sizeを感度分析する。
+`src/power_analysis.py` でtwo-sided MDEとnon-inferiority marginに対するsample-size sensitivityを計算します。
 
-Spendはzero-inflatedかつhigh varianceであるため、特定の小さなMDEだけを置かず、
+Planning SDはheld-out treatment / control SDの大きい方を使用します。
 
-* 0.10
-* 0.20
-* 0.30
-* 0.40
-* 0.50
+```text
+planning_sd = max(sd_treatment, sd_control)
+```
 
-のabsolute Spend per User differenceについてsample-size sensitivityを計算する。
+Two-sided equal-allocation approximation:
 
-### 15.1 Planning SD
+```text
+n_per_arm
+= 2 * sigma^2 * (z_alpha + z_power)^2 / delta^2
+```
 
-planning varianceについては、
+Non-inferiority:
 
-$$
-\sigma_{plan}
-=
-\max(
-\sigma_{treatment},
-\sigma_{control}
-)
-$$
+```text
+H0: Delta <= -Margin
+H1: Delta >  -Margin
+```
 
-を使用する。
-
-観測された小さい方のSDを利用してsample sizeを楽観的に見積もらないためである。
-
-### 15.2 Two-sided Difference Detection
-
-Equal allocationの2-arm experimentについて、
-
-$$
-n
-=
-\frac{
-2\sigma^2
-(z_{1-\alpha/2}+z_{power})^2
-}{
-\delta^2
-}
-$$
-
-を用いてn per armを近似する。
-
-### 15.3 Non-inferiority
-
-Targetingでは配信量を大幅に削減する代わりに、一定のSpend lossを許容する可能性がある。
-
-そのためPrimary design candidateとしてnon-inferiorityを検討する。
-
-$$
-\Delta
-=
-V(Targeting)
--
-V(SendAll)
-$$
-
-non-inferiority marginを \(M>0\) とすると、
-
-$$
-H_0:
-\Delta
-\le
--M
-$$
-
-$$
-H_1:
-\Delta
->
--M
-$$
-
-とする。
-
-必要sample sizeは、想定真値 \(\Delta_{true}\) とnull boundaryとの差、
-
-$$
-\Delta_{true}+M
-$$
-
-に基づいて計算する。
-
-### 15.4 Margin Selection
-
-Non-inferiority marginは統計的に都合の良い値から選ばない。
-
-本来は、
-
-* gross margin
-* email delivery cost
-* opportunity cost
-* business tolerance
-
-から事前に決定すべきbusiness parameterである。
-
-現在のdatasetではこれらの情報がないため、複数marginについてsensitivity tableを提示する。
-
----
+Marginは必要sample sizeの都合で決めず、gross margin、delivery cost、opportunity cost、business toleranceから事前に決めるbusiness parameterです。
 
 ## 16. Multiple Testing Policy
 
-本分析では、すべてのp-valueを1つの巨大なfamilyとして補正しない。
-
-分析目的ごとにfamilyを分離する。
+すべてのp-valueを1つの巨大なfamilyとして扱わず、analysis objectiveごとにfamilyを分離します。
 
 ### ATE Family
 
-* 2 treatment comparisons
-* 3 outcomes
-* 6 tests
-
-Holm correctionを適用。
+- 2 treatment comparisons
+- 3 outcomes
+- 6 tests
+- Holm correction
 
 ### Targeted Follow-up Heterogeneity Family
 
-* 2 treatment-moderator hypotheses
-* 3 outcomes
-* 6 tests
+- 2 treatment-moderator hypotheses
+- 3 outcomes
+- 6 tests
+- Holm correction
+- Post-selectionのためexploratory interpretationを維持
 
-Holm correctionを適用。
+### Exploratory Channel Family
 
-ただしpost-selectionされたhypothesesであるため、exploratory interpretationを維持する。
+別familyとして評価します。
 
-### Exploratory Channel Interaction
+## 17. Analytical Guardrails
 
-別familyとして扱う。
-
-この分離により、異なるanalysis objectiveを持つ検定を機械的に同一familyへまとめない。
-
----
-
-## 17. 推論上のGuardrails
-
-本プロジェクトでは以下を明示的な分析ルールとした。
-
-### Randomization
-
-「Randomizationが成功した」と断定しない。
-
-代わりに、
-
-> SRMや重大なobserved covariate imbalanceを示す証拠は確認されなかった。
-
-と表現する。
-
-### Treatment Comparison
-
-Men's EmailとWomen's EmailのControl relative ATEを比較しても、
-
-> Men's EmailがWomen's Emailより有意に優れている
-
-とは言わない。
-
-直接比較していないためである。
-
-### Heterogeneity
-
-Descriptive subgroup patternを見た後に選択したinteractionはconfirmatoryと呼ばない。
-
-### Uplift
-
-Positive predicted upliftをindividual-level causal truthと解釈しない。
-
-### Policy Selection
-
-Held-out data上で最良だったTop-kを、そのままproduction policyとして採用しない。
-
-### Economics
-
-SpendをProfitと呼ばない。
-
-### Power
-
-必要sample sizeを小さくするためにnon-inferiority marginを拡大しない。
-
----
+- Randomizationが「成功した」と断定しない
+- Men's EmailとWomen's Emailを直接比較していないため、どちらが統計的に優れているか断定しない
+- Post-treatment variableをheterogeneity / uplift featureに使わない
+- Conversionしたユーザーだけに限定してSpendを比較しない
+- Descriptive subgroup review後のinteractionをconfirmatoryと呼ばない
+- Predicted upliftをindividual causal effectそのものと解釈しない
+- Training dataでpolicyを評価しない
+- Held-outで最良だったTop-kを即production policyにしない
+- SpendをProfitと呼ばない
+- Sample sizeを小さくするためにNI marginを広げない
 
 ## 18. Reproducibility
-
-分析pipelineは以下の順序で再実行できる。
 
 ```bash
 bq query --use_legacy_sql=false < sql/00_data_audit.sql
 
-python src/validate_randomization.py
+python src/validate_randomization.py \
+  --project hillstrom-experiment-20260828 \
+  --table ceus.hillstrom_raw
 
 bq query --use_legacy_sql=false < sql/01_experiment_population.sql
-
 bq query --use_legacy_sql=false < sql/02_ab_metrics.sql
 
-python src/estimate_ate.py
+python src/estimate_ate.py \
+  --project hillstrom-experiment-20260828 \
+  --table ceus.experiment_population
 
 bq query --use_legacy_sql=false < sql/03_segment_analysis.sql
 
@@ -1013,101 +415,28 @@ python src/uplift_model.py \
   --table ceus.experiment_population
 
 python src/policy_evaluation.py
-
 python src/power_analysis.py
+pytest -q
 ```
 
-BigQueryはGoogleSQLを使用する。
-
----
-
-## 19. 分析成果物
-
-主要なprocessed outputsは以下。
-
-### Randomization
+Current regression-test status:
 
 ```text
-randomization_treatment_counts.csv
-randomization_pairwise_balance.csv
-randomization_covariate_summary.csv
-randomization_validation_summary.json
+20 passed
 ```
 
-### ATE
+## 19. Methodological Summary
+
+本プロジェクトでは次の順序で分析を構築しました。
 
 ```text
-ate_estimates.csv
-ate_summary.json
+Data Quality
+    -> Randomization Validation
+    -> ATE
+    -> Heterogeneity
+    -> Uplift
+    -> Policy Evaluation
+    -> Prospective Experiment Design
 ```
 
-### Heterogeneity
-
-targeted follow-up interaction resultsおよびexploratory interaction results。
-
-### Uplift
-
-```text
-uplift_model_metrics.csv
-uplift_top_k.csv
-uplift_curves.csv
-uplift_predictions.csv
-uplift_summary.json
-```
-
-### Policy
-
-```text
-policy_evaluation.csv
-policy_break_even.csv
-policy_summary.json
-```
-
-### Power
-
-```text
-power_mde_sensitivity.csv
-power_noninferiority_sensitivity.csv
-power_summary.json
-```
-
----
-
-## 20. Methodological Summary
-
-本プロジェクトでは、
-
-$$
-Data\ Quality
-\rightarrow
-Randomization\ Validation
-\rightarrow
-ATE
-\rightarrow
-Heterogeneity
-\rightarrow
-Uplift
-\rightarrow
-Policy
-\rightarrow
-Experiment\ Design
-$$
-
-という順序で分析を構築した。
-
-目的は、単に、
-
-> Treatment effectが統計的に有意だった
-
-で分析を終了することではない。
-
-最終的には、
-
-> 誰に施策を実行すべきか
-> そのpolicyはSend Allより価値があるか
-> 不確実性を考慮して本番導入できるか
-> 次回実験にはどの程度のsample sizeが必要か
-
-まで接続することを目的とした。
-
-その結果、平均処置効果、heterogeneity、causal ML、policy evaluation、prospective experiment designを一貫した意思決定フレームワークとして統合した。
+目的は「Treatment effectが有意だった」で終了することではなく、**誰に施策を実行すべきか、そのpolicyに本番導入できるだけの証拠があるか、次回検証にどの程度のsample sizeが必要か**まで接続することです。
