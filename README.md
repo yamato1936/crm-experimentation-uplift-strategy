@@ -105,12 +105,7 @@ SRM flag   = False
 
 連続変数のSMDは概ね次式で評価しています。
 
-$$
-\mathrm{SMD}
-=
-\frac{\bar X_T-\bar X_C}
-{\sqrt{(s_T^2+s_C^2)/2}}
-$$
+$$\mathrm{SMD}=\frac{\bar X_T-\bar X_C}{\sqrt{(s_T^2+s_C^2)/2}}$$
 
 最大絶対SMDは約0.017で、`|SMD| >= 0.10`となる変数はありませんでした。
 
@@ -122,11 +117,9 @@ Intent-to-Treat（ITT）として、Men's EmailとWomen's Emailをそれぞれ�
 
 基本的な推定量は、処置群と対照群の平均差です。
 
-$$
-\widehat{ATE}=\bar Y_T-\bar Y_C
-$$
+$$\widehat{ATE}=\bar Y_T-\bar Y_C$$
 
-2つの処置群 × 3つのアウトカム = 6比較に対してHolm補正を適用しています。
+2つの処置群 × 3つのアウトカム = 6比較に対してホルム補正を適用しています。
 
 ### Men's Email vs 対照群
 
@@ -144,7 +137,7 @@ $$
 | Conversion Rate | 0.57% | 0.88% | **+0.31pp** |
 | Spend / User | 0.653 | 1.077 | **+0.424** |
 
-6比較すべてでHolm補正後も統計的に有意でした。Spendはゼロが非常に多く裾の長い分布なので、Welch法に加えてpercentile bootstrapによる信頼区間も確認しています。
+6比較すべてでホルム補正後も統計的に有意でした。Spendはゼロが非常に多く裾の長い分布なので、Welch法に加えてpercentile bootstrapによる信頼区間も確認しています。
 
 なお、Men's EmailとWomen's Emailを直接比較する検定は行っていないため、「Men's Emailの方が統計的に優れている」とは主張していません。
 
@@ -152,17 +145,9 @@ $$
 
 事前共変量によって処置効果が変化するかを、交互作用項を含む回帰モデルで評価しました。
 
-$$
-Y_i
-=
-\beta_0
-+\beta_1T_i
-+\beta_2X_i
-+\beta_3(T_iX_i)
-+\varepsilon_i
-$$
+$$Y_i = \beta_0+\beta_1T_i+\beta_2X_i+\beta_3(T_iX_i)+\varepsilon_i$$
 
-ここで、$\beta_3$ が効果の異質性を表す交互作用係数です。標準誤差にはHC3 robust standard errorを使用しました。
+ここで、 $\beta_3$ が効果の異質性を表す交互作用係数です。標準誤差にはHC3ロバスト標準誤差を使用しました。
 
 ### Women's Email × 過去のWomen's商品購買履歴
 
@@ -191,13 +176,9 @@ Women's Email vs Control
 
 処置群モデルと対照群モデルから条件付き平均処置効果を推定します。
 
-$$
-\hat\tau(x)
-=
-\hat\mu_1(x)-\hat\mu_0(x)
-$$
+$$\hat\tau(x)=\hat\mu_1(x)-\hat\mu_0(x)$$
 
-ここで、$\hat\tau(x)$ は「そのユーザーにメールを送った場合にどれだけアウトカムが増えるとモデルが推定しているか」を表します。
+ここで、 $\hat\tau(x)$ は「そのユーザーにメールを送った場合にどれだけアウトカムが増えるとモデルが推定しているか」を表します。
 
 特徴量は事前共変量のみに限定し、学習に使っていないheld-out sampleでQini、AUUC、Top-k upliftを評価しました。
 
@@ -223,15 +204,7 @@ held-out predictionsを使い、以下の配信方針を比較しました。
 
 配信方針 $\pi(X)$ の価値はInverse Propensity Weighting（IPW）で推定しました。
 
-$$
-V(\pi)
-=
-E\left[
-\pi(X)\frac{TY}{e}
-+
-\{1-\pi(X)\}\frac{(1-T)Y}{1-e}
-\right]
-$$
+$$V(\pi)=E\left[\pi(X)\frac{TY}{e}+\{1-\pi(X)\}\frac{(1-T)Y}{1-e}\right]$$
 
 ### Men's Email × Spend
 
@@ -268,34 +241,21 @@ Difference = -0.301
 
 Hillstrom Datasetには実際の配信コストや粗利率が含まれていません。そのため架空の利益率を置かず、Spendと同じ単位で損益分岐となる配信コストを逆算しました。
 
-配信方針 $\pi$ の配信率を $r_\pi$、1通あたり配信コストを $c$ とすると、簡略化した純価値は
+配信方針 $\pi$ の配信率を $r_\pi$ 、1通あたり配信コストを $c$ とすると、簡略化した純価値は
 
-$$
-\mathrm{NetValue}(\pi,c)
-=
-V(\pi)-c r_\pi
-$$
+$$\mathrm{NetValue}(\pi,c)=V(\pi)-c r_\pi$$
 
 です。
 
 上位10%ターゲティングと一律配信の損益分岐コストは
 
-$$
-c^*
-=
-\frac{V(\mathrm{All})-V(\pi)}{1-r_\pi}
-$$
+$$c^*=\frac{V(\mathrm{All})-V(\pi)}{1-r_\pi}$$
 
 で表されます。Women's Email Top-10%の点推定では約0.334 / emailでした。
 
 ただし、これは利益ベースの閾値ではありません。実務では粗利率 $m$ を用いて、
 
-$$
-\mathrm{NetValue}
-=
-m\times\mathrm{IncrementalSpend}
--\mathrm{DeliveryCost}
-$$
+$$\mathrm{NetValue}=m\times\mathrm{IncrementalSpend}-\mathrm{DeliveryCost}$$
 
 と評価する必要があります。
 
@@ -310,25 +270,15 @@ Women's Emailの上位10%ターゲティングは、そのまま本番導入せ�
 
 主要な推定対象は、
 
-$$
-\Delta
-=
-E[Spend\mid Targeting]
--
-E[Spend\mid SendAll]
-$$
+$$\Delta=E[Spend\mid Targeting]-E[Spend\mid SendAll]$$
 
 です。
 
 配信量を約90%削減する方針なので、単純なsuperiority testだけでなくnon-inferiority designを主要候補とします。
 
-$$
-H_0:\Delta\le -M
-$$
+$$H_0:\Delta\le -M$$
 
-$$
-H_1:\Delta>-M
-$$
+$$H_1:\Delta>-M$$
 
 ここで $M$ は、事業上許容できるSpend / Userの最大低下量です。必要サンプルサイズを小さくするために $M$ を広げるのではなく、粗利率、配信コスト、事業上の許容損失から事前に決める必要があります。
 
