@@ -64,9 +64,7 @@ Intent-to-Treat（ITT）として、対照群に対する各Email施策の平均
 
 基本推定量は
 
-$$
-\widehat{ATE}=\bar Y_T-\bar Y_C
-$$
+$$\widehat{ATE}=\bar Y_T-\bar Y_C$$
 
 です。
 
@@ -106,15 +104,7 @@ Women's Emailも3指標すべてで正の効果が確認され、Holm補正後�
 
 事前共変量によって処置効果が変化するかを、交互作用項を含む回帰モデルで評価しました。
 
-$$
-Y_i
-=
-\beta_0
-+\beta_1T_i
-+\beta_2X_i
-+\beta_3(T_iX_i)
-+\varepsilon_i
-$$
+$$Y_i=\beta_0+\beta_1T_i+\beta_2X_i+\beta_3(T_iX_i)+\varepsilon_i$$
 
 ここで、$\beta_3$ が処置効果の異質性を表します。
 
@@ -174,11 +164,7 @@ Women's Emailでは、
 
 処置群と対照群でそれぞれアウトカムモデルを学習し、
 
-$$
-\hat\tau(x)
-=
-\hat\mu_1(x)-\hat\mu_0(x)
-$$
+$$\hat\tau(x)=\hat\mu_1(x)-\hat\mu_0(x)$$
 
 としてpredicted upliftを計算します。
 
@@ -225,15 +211,7 @@ held-out predictionsを用いて、以下の配信方針を比較しました。
 
 配信方針 $\pi(X)$ の価値はInverse Propensity Weightingで推定しました。
 
-$$
-V(\pi)
-=
-E\left[
-\pi(X)\frac{TY}{e}
-+
-\{1-\pi(X)\}\frac{(1-T)Y}{1-e}
-\right]
-$$
+$$V(\pi)=E\left[\pi(X)\frac{TY}{e}+\{1-\pi(X)\}\frac{(1-T)Y}{1-e}\right]$$
 
 ### Men's Email × Spend
 
@@ -288,29 +266,19 @@ Hillstrom Datasetには実際のメール配信コスト、粗利率、利益率
 
 配信方針 $\pi$ の配信率を $r_\pi$、1通あたり配信コストを $c$ とすると、簡略化した純価値は
 
-$$
-\mathrm{NetValue}(\pi,c)
-=
-V(\pi)-c r_\pi
-$$
+$$\mathrm{NetValue}(\pi,c)=V(\pi)-c r_\pi$$
 
 です。
 
 Top-10% targetingと一律配信の損益分岐点は、
 
-$$
-c^*
-=
-\frac{V(\mathrm{All})-V(\pi)}{1-r_\pi}
-$$
+$$c^*=\frac{V(\mathrm{All})-V(\pi)}{1-r_\pi}$$
 
 で表されます。
 
 Women's Email Top-10%では、点推定で
 
-$$
-c^*\approx0.334
-$$
+$$c^*\approx0.334$$
 
 でした。
 
@@ -320,12 +288,7 @@ $$
 
 実務では粗利率 $m$ を用いて、
 
-$$
-\mathrm{NetValue}
-=
-m\times\mathrm{IncrementalSpend}
--\mathrm{DeliveryCost}
-$$
+$$\mathrm{NetValue}=m\times\mathrm{IncrementalSpend}-\mathrm{DeliveryCost}$$
 
 で評価する必要があります。
 
@@ -349,25 +312,15 @@ Women's Emailを全eligible userに配信します。
 
 ### 主要な推定対象
 
-$$
-\Delta
-=
-E[Spend\mid Targeting]
--
-E[Spend\mid SendAll]
-$$
+$$\Delta=E[Spend\mid Targeting]-E[Spend\mid SendAll]$$
 
 ### 推奨する検定
 
 配信量を90%削減する代わりに一定のSpend低下を許容する意思決定なので、単純なsuperiority testよりもnon-inferiority designが適しています。
 
-$$
-H_0:\Delta\le-M
-$$
+$$H_0:\Delta\le-M$$
 
-$$
-H_1:\Delta>-M
-$$
+$$H_1:\Delta>-M$$
 
 ここで $M$ は、事業上許容可能なSpend / Userの最大低下量です。
 
