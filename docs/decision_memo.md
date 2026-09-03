@@ -1,58 +1,78 @@
-# CRM配信戦略 Decision Memo
+# CRM配信戦略 意思決定メモ
 
 ## 1. 結論
 
-現時点では、**Men's Email / Women's Email ともにSend Allをベースライン施策として維持する**のが妥当です。
+現時点では、**Men's Email / Women's Emailともに一律配信（Send All）を基準方針として維持する**のが妥当です。
 
-ただしWomen's Emailについては、事前購買履歴による効果の異質性とuplift rankingのシグナルが確認されているため、**将来的なtargeting配信の候補**とします。
+ただしWomen's Emailについては、過去のWomen's商品購買履歴による効果の異質性と、アップリフトモデルによる順位付けシグナルが確認されています。そのため、**将来的なターゲティング配信の候補**として検証を続けます。
 
-一方、現在のデータだけではTop-10% targetingがSend Allを上回るとは結論できません。したがって、Women's Email targetingは本番導入せず、model・対象割合・判定ルールを固定したうえで次回のrandomized experimentで検証します。
+一方、現在のデータだけでは上位10%ターゲティングが一律配信を上回るとは結論できません。したがって、Women's Emailのターゲティング配信は本番導入せず、モデル・対象割合・判定ルールを固定したうえで次回のランダム化比較試験で検証します。
 
-## 2. Business Question
+---
 
-> CRMキャンペーンは本当にユーザー行動を改善したのか。全員に配信すべきか。それとも効果のあるユーザーだけに配信すべきか？
+## 2. ビジネス上の問い
+
+本分析では、以下の問いに答えることを目的としました。
+
+> CRMキャンペーンは本当にユーザー行動を改善したのか。全員に配信すべきか。それとも効果の高いユーザーだけに配信すべきか？
 
 意思決定は次の3段階で行いました。
 
 1. Email配信そのものに平均的な因果効果があるか
 2. 効果がユーザー属性によって異なるか
-3. Uplift modelを用いたtargetingがSend Allより有利か
+3. アップリフトモデルを用いたターゲティングが一律配信より有利か
+
+---
 
 ## 3. データと実験の妥当性
 
 Hillstrom Email Marketing Datasetの64,000ユーザーを分析対象としました。
 
-Treatment:
+実験群は以下の3群です。
 
-- Control: No E-Mail
+- 対照群: No E-Mail
 - Men's Email
 - Women's Email
 
-### Sample Ratio Mismatch
+ランダム化診断として、Sample Ratio Mismatch（SRM）と事前共変量バランスを確認しました。
 
-```text
-Chi-square = 0.203
-p-value    = 0.904
-SRM flag   = False
-```
+### SRM
 
-Treatment allocationに明確な異常は確認されませんでした。
+- Chi-square: 0.203
+- p-value: 0.904
+- SRM flag: False
 
-### Pre-treatment balance
+処置割付に明確な異常は確認されませんでした。
 
-主要pre-treatment covariatesのpairwise SMDを確認した結果、最大absolute SMDは約0.017でした。`|SMD| >= 0.10`となる変数はありませんでした。
+### 事前共変量バランス
 
-したがって、**Sample Ratio Mismatchまたは重大なpre-treatment covariate imbalanceを示す証拠は確認されなかった**と判断しました。
+主要な事前共変量についてpairwise SMDを確認した結果、最大絶対SMDは約0.017で、一般的な目安である `|SMD| >= 0.10` に達する変数はありませんでした。
 
-これはrandomizationが証明されたことを意味せず、観測可能な診断上、大きな問題が検出されなかったことを意味します。
+したがって、
 
-## 4. Average Treatment Effect
+> Sample Ratio Mismatchまたは重大な事前共変量の不均衡を示す証拠は確認されなかった。
 
-Intent-to-TreatとしてControlに対する各Email施策の平均処置効果を推定しました。
+と判断しました。
 
-### Men's Email vs Control
+これはランダム化が「証明された」ことを意味するものではなく、観測可能な診断上、大きな問題が検出されなかったことを意味します。
 
-| Outcome | Control | Men's Email | ATE |
+---
+
+## 4. 平均処置効果
+
+Intent-to-Treat（ITT）として、対照群に対する各Email施策の平均処置効果を推定しました。
+
+基本推定量は
+
+$$
+\widehat{ATE}=\bar Y_T-\bar Y_C
+$$
+
+です。
+
+### Men's Email vs 対照群
+
+| アウトカム | 対照群 | Men's Email | ATE |
 | --- | ---: | ---: | ---: |
 | Visit Rate | 10.62% | 18.28% | +7.66pp |
 | Conversion Rate | 0.57% | 1.25% | +0.68pp |
@@ -60,112 +80,164 @@ Intent-to-TreatとしてControlに対する各Email施策の平均処置効果�
 
 3指標すべてで正の効果が確認され、Holm補正後も統計的に有意でした。
 
-### Women's Email vs Control
+### Women's Email vs 対照群
 
-| Outcome | Control | Women's Email | ATE |
+| アウトカム | 対照群 | Women's Email | ATE |
 | --- | ---: | ---: | ---: |
 | Visit Rate | 10.62% | 15.14% | +4.52pp |
 | Conversion Rate | 0.57% | 0.88% | +0.31pp |
 | Spend / User | 0.653 | 1.077 | +0.424 |
 
-こちらも3指標すべてで正の効果が確認され、Holm補正後も統計的に有意でした。
+Women's Emailも3指標すべてで正の効果が確認され、Holm補正後も統計的に有意でした。
 
-平均効果だけを見る限り、**Emailを送らないより、Men's Email / Women's Emailを送った方がユーザー行動は改善する**という結論を支持します。
+### 判断
 
-なお、Men's Emailの点推定値はWomen's Emailより大きいですが、両施策を直接比較する検定は行っていないため、「Men's Emailの方が統計的に優れている」とは結論していません。
+平均効果だけを見る限り、
 
-## 5. Treatment Effect Heterogeneity
+> Emailを送らないより、Men's Email / Women's Emailを送った方がユーザー行動は改善する。
 
-Descriptive subgroup review後に選択したinteractionをtargeted follow-up analysisとして評価しました。
+という結論を支持します。
 
-### Women's Email x prior womens purchase
+なお、Men's Emailの点推定値はWomen's Emailより大きいですが、両者を直接比較する検定は行っていないため、「Men's Emailの方が統計的に優れている」とは結論していません。
 
-Visit:
+---
 
-```text
-Interaction effect      = +6.20pp
-95% CI                  = [4.95pp, 7.46pp]
-Holm-adjusted p-value   < 0.001
+## 5. 処置効果の異質性
 
-womens = 0: +1.11pp
-womens = 1: +7.31pp
-```
+事前共変量によって処置効果が変化するかを、交互作用項を含む回帰モデルで評価しました。
 
-Conversion:
+$$
+Y_i
+=
+\beta_0
++\beta_1T_i
++\beta_2X_i
++\beta_3(T_iX_i)
++\varepsilon_i
+$$
 
-```text
-Interaction effect      = +0.45pp
-95% CI                  = [0.13pp, 0.77pp]
-Holm-adjusted p-value   = 0.028
+ここで、$\beta_3$ が処置効果の異質性を表します。
 
-womens = 0: +0.06pp
-womens = 1: +0.51pp
-```
+記述的なサブグループ分析を確認した後に選択した交互作用なので、これらは確証的分析ではなく**探索的なtargeted follow-up analysis**として扱います。
 
-Spendについてinteractionの統計的証拠は十分ではありませんでした。
+### Women's Email × 過去のWomen's商品購買履歴
 
-### Men's Email x prior mens purchase
+#### Visit
 
-Visit、Conversion、Spendのいずれについても十分なinteraction evidenceは確認されませんでした。
+- Interaction effect: +6.20pp
+- 95% CI: [4.95pp, 7.46pp]
+- Holm-adjusted p-value: < 0.001
 
-Women's Emailでは、**過去にWomen's merchandiseを購入したユーザーほど、Visit / Conversionへの効果が大きい可能性がある**というシグナルが得られました。
+層別効果:
 
-ただし、この仮説はdescriptive subgroup review後に選択されたため、探索的結果として扱います。
+- `womens = 0`: +1.11pp
+- `womens = 1`: +7.31pp
 
-## 6. Uplift Modeling
+#### Conversion
 
-Pre-treatment featuresのみを使ったT-Learnerを構築し、Men's Email vs Control、Women's Email vs Controlを別々のbinary treatment problemとして学習しました。
+- Interaction effect: +0.45pp
+- 95% CI: [0.13pp, 0.77pp]
+- Holm-adjusted p-value: 0.028
+
+層別効果:
+
+- `womens = 0`: +0.06pp
+- `womens = 1`: +0.51pp
+
+#### Spend
+
+Spendについては交互作用の統計的証拠は十分ではありませんでした。
+
+### Men's Email × 過去のMen's商品購買履歴
+
+Visit、Conversion、Spendのいずれについても十分な交互作用の証拠は確認されませんでした。
+
+### 判断
+
+Women's Emailでは、
+
+> 過去にWomen's商品を購入したユーザーほど、Visit / Conversionへの効果が大きい可能性がある。
+
+というシグナルが得られました。
+
+ただし、この仮説は記述的サブグループ分析の後に選択されたため、探索的結果として扱います。
+
+---
+
+## 6. アップリフト・モデリング
+
+次に、平均効果ではなく
+
+> 誰に送ると増分効果が大きいか
+
+を推定するため、事前共変量のみを使ったT-Learnerを構築しました。
+
+処置群と対照群でそれぞれアウトカムモデルを学習し、
+
+$$
+\hat\tau(x)
+=
+\hat\mu_1(x)-\hat\mu_0(x)
+$$
+
+としてpredicted upliftを計算します。
+
+Men's Email vs Control、Women's Email vs Controlを別々の二値処置問題として学習し、held-out dataで評価しました。
 
 ### Men's Email
 
-```text
-Conversion Qini = -0.00023
-Spend Qini      = +0.00430
-```
+- Conversion Qini: -0.00023
+- Spend Qini: +0.00430
 
-Targetingによって明確に高upliftユーザーを識別できているとは言いにくい結果です。
+ターゲティングによって明確に高upliftユーザーを識別できているとは言いにくい結果でした。
 
 ### Women's Email
 
-```text
-Conversion Qini = +0.00067
-Spend Qini      = +0.03670
-```
+- Conversion Qini: +0.00067
+- Spend Qini: +0.03670
 
 Top 20% Conversion:
 
-```text
-Observed uplift = +1.05pp
-95% CI          = [0.23pp, 1.88pp]
-```
+- Observed uplift: +1.05pp
+- 95% CI: [0.23pp, 1.88pp]
 
 Top 10% Spend:
 
-```text
-Observed uplift = +2.486 / user
-95% CI          = [0.428, 4.544]
-```
+- Observed uplift: +2.486 / user
+- 95% CI: [0.428, 4.544]
 
-Women's Emailでは、Men's Emailより明確なuplift ranking signalが確認されました。
+Women's Emailでは、Men's Emailより明確なアップリフト順位付けシグナルが観測されました。
 
-ただしTop-10%は結果確認後に有望と判断した割合であり、独立したvalidation sampleで確証されたpolicyではありません。
+ただし、Top-10%という割合は結果を確認した後に有望と判断したものであり、独立したvalidation sampleで確証された方針ではありません。
 
-## 7. Policy Evaluation
+---
 
-Held-out predictionsを用いて以下のpolicyを比較しました。
+## 7. 配信方針の評価
 
-- Send None
-- Send All
+held-out predictionsを用いて、以下の配信方針を比較しました。
+
+- 配信しない（Send None）
+- 全員に配信（Send All）
 - Top 10%
 - Top 20%
 - Top 30%
 - Top 50%
 
-Policy valueはInverse Propensity Weightingで推定しました。
+配信方針 $\pi(X)$ の価値はInverse Propensity Weightingで推定しました。
 
-### Men's Email x Spend
+$$
+V(\pi)
+=
+E\left[
+\pi(X)\frac{TY}{e}
++
+\{1-\pi(X)\}\frac{(1-T)Y}{1-e}
+\right]
+$$
 
-| Policy | Policy Value | vs Send All |
+### Men's Email × Spend
+
+| 配信方針 | Policy Value | vs Send All |
 | --- | ---: | ---: |
 | Send All | 1.581 | 0.000 |
 | Top 10% | 0.826 | -0.755 |
@@ -173,13 +245,17 @@ Policy valueはInverse Propensity Weightingで推定しました。
 | Top 30% | 0.946 | -0.635 |
 | Top 50% | 1.213 | -0.367 |
 
-すべてのTop-k policyでSend Allよりgross spendが低く、その差の95% CIも0を跨ぎませんでした。
+すべてのTop-k方針で一律配信よりgross spendが低く、その差の95% CIも0をまたぎませんでした。
 
-したがってMen's Emailでは、**Targetingによってgross spendを維持しながら配信量を減らせる証拠はない**と判断します。
+したがって、Men's Emailでは現状、
 
-### Women's Email x Spend
+> ターゲティングによってgross spendを維持しながら配信量を減らせる証拠はない。
 
-| Policy | Policy Value | vs Send All |
+と判断します。
+
+### Women's Email × Spend
+
+| 配信方針 | Policy Value | vs Send All |
 | --- | ---: | ---: |
 | Send All | 1.156 | 0.000 |
 | Top 10% | 0.855 | -0.301 |
@@ -187,69 +263,123 @@ Policy valueはInverse Propensity Weightingで推定しました。
 | Top 30% | 0.868 | -0.287 |
 | Top 50% | 0.895 | -0.261 |
 
-Top-10% vs Send All:
+Top-10%と一律配信との差は、
 
-```text
-Point estimate = -0.301
-95% CI         = [-0.745, +0.114]
-```
+- 点推定: -0.301
+- 95% CI: [-0.745, +0.114]
 
-したがって、Women's Email Top-10% targetingがSend Allと同等以上のgross spendを維持するとは現時点では結論できません。
+でした。
 
-一方でCIは0を跨いでおり、Send Allに対するgross spend lossの大きさ自体にも不確実性があります。
+したがって、
 
-## 8. Delivery Costを考慮した意思決定
+> Women's Email Top-10% targetingが一律配信と同等以上のgross spendを維持する
 
-Hillstrom Datasetには実際のメール配信コスト、粗利率、利益率がありません。
+とは現時点では結論できません。
 
-そのため架空のコストを仮定せず、Spendと同じ単位でbreak-even delivery costを計算しました。
+一方で信頼区間は0をまたいでおり、gross spend lossの大きさ自体にも不確実性があります。
 
-Women's Email Top-10%のSend Allに対するpoint-estimate break-even thresholdは約0.334です。
+---
 
-```text
-If delivery cost > 0.334 revenue-units / email,
-Top-10% targeting may outperform Send All in estimated net value.
-```
+## 8. 配信コストを考慮した意思決定
 
-ただしこれはprofit thresholdではありません。
+Hillstrom Datasetには実際のメール配信コスト、粗利率、利益率が含まれていません。
 
-実務では次のようにgross marginを含めて判断すべきです。
+そのため、架空のコストを仮定するのではなく、Spendと同じ単位で損益分岐となる配信コストを計算しました。
 
-```text
-Net Value = Gross Margin * Incremental Spend - Delivery Cost
-```
+配信方針 $\pi$ の配信率を $r_\pi$、1通あたり配信コストを $c$ とすると、簡略化した純価値は
 
-したがって0.334は**revenue-equivalent break-even threshold**としてのみ解釈します。
+$$
+\mathrm{NetValue}(\pi,c)
+=
+V(\pi)-c r_\pi
+$$
 
-## 9. 次回実験
+です。
 
-Women's Email targetingを本番導入する前にprospective RCTを実施します。
+Top-10% targetingと一律配信の損益分岐点は、
 
-- **Arm A:** Send All
-- **Arm B:** Frozen Top-10% Targeting Policy
+$$
+c^*
+=
+\frac{V(\mathrm{All})-V(\pi)}{1-r_\pi}
+$$
 
-Primary estimand:
+で表されます。
 
-```text
-Delta = E[Spend | Targeting] - E[Spend | Send All]
-```
+Women's Email Top-10%では、点推定で
 
-配信量を約90%削減する代わりに一定のSpend低下を許容する意思決定であるため、non-inferiority designを主要候補とします。
+$$
+c^*\approx0.334
+$$
 
-```text
-H0: Delta <= -Margin
-H1: Delta >  -Margin
-```
+でした。
 
-Marginは必要sample sizeを小さくするために選ぶのではなく、gross margin、delivery cost、opportunity cost、business toleranceから事前に決定します。
+つまり、Spendをそのまま経済価値として扱う単純化のもとでは、1配信あたりのコストが約0.334を超える場合、Top-10% targetingの方が一律配信より高いnet valueを持つ可能性があります。
 
-## 10. Power / Feasibility
+ただし、これはprofit thresholdではありません。
 
-Planning SDは約16.76です。
+実務では粗利率 $m$ を用いて、
 
-真のdifferenceを0と仮定した場合:
+$$
+\mathrm{NetValue}
+=
+m\times\mathrm{IncrementalSpend}
+-\mathrm{DeliveryCost}
+$$
 
-| NI Margin | Required N / Arm | Total N |
+で評価する必要があります。
+
+したがって、0.334は**revenue-equivalent break-even threshold**としてのみ解釈します。
+
+---
+
+## 9. 次回実験の設計
+
+Women's Email targetingを本番導入する前に、prospective RCTを実施します。
+
+### Arm A: 一律配信
+
+Women's Emailを全eligible userに配信します。
+
+### Arm B: 固定済みTop-10%ターゲティング方針
+
+現在構築したアップリフトモデル、特徴量、model parameters、targeting thresholdを事前に固定し、uplift score上位約10%のみにWomen's Emailを配信します。
+
+実験開始後にモデルやthresholdを変更しません。
+
+### 主要な推定対象
+
+$$
+\Delta
+=
+E[Spend\mid Targeting]
+-
+E[Spend\mid SendAll]
+$$
+
+### 推奨する検定
+
+配信量を90%削減する代わりに一定のSpend低下を許容する意思決定なので、単純なsuperiority testよりもnon-inferiority designが適しています。
+
+$$
+H_0:\Delta\le-M
+$$
+
+$$
+H_1:\Delta>-M
+$$
+
+ここで $M$ は、事業上許容可能なSpend / Userの最大低下量です。
+
+---
+
+## 10. 検出力と実行可能性
+
+Spendは非常にzero-inflatedかつ高分散であり、held-out dataではplanning SDが約16.76でした。
+
+真の差を0と仮定した場合、80% power・片側alpha 5%のnon-inferiority designでは以下の必要サンプルサイズになります。
+
+| NI Margin | 必要N / Arm | Total N |
 | ---: | ---: | ---: |
 | 0.10 | 347,149 | 694,298 |
 | 0.20 | 86,788 | 173,576 |
@@ -257,43 +387,69 @@ Planning SDは約16.76です。
 | 0.40 | 21,697 | 43,394 |
 | 0.50 | 13,886 | 27,772 |
 
-Historical point estimate `Delta = -0.300664` が再現すると仮定した場合:
+さらに、今回観測された
 
-| NI Margin | Feasibility |
-| ---: | ---: |
-| 0.10 | 達成不可 |
-| 0.20 | 達成不可 |
-| 0.30 | 達成不可 |
-| 0.40 | Total N 約703,610 |
-| 0.50 | Total N 約174,734 |
+$$
+\Delta=-0.300664
+$$
 
-現在観測されたeffectが再現する場合、小さいnon-inferiority marginでtargetingを実証することは難しいと分かります。
+が真の差に近いと仮定すると、
 
-## 11. 最終Decision
+- Margin 0.10: non-inferiority達成不可
+- Margin 0.20: non-inferiority達成不可
+- Margin 0.30: non-inferiority達成不可
+- Margin 0.40: Total N 約703,610
+- Margin 0.50: Total N 約174,734
+
+となります。
+
+Marginは必要サンプルサイズを小さくするために選ぶのではなく、粗利・配信コスト・機会費用などの事業上の許容範囲から事前に決定する必要があります。
+
+---
+
+## 11. 最終意思決定
 
 ### Men's Email
 
-**Decision: Send Allを維持**
+**Decision: 一律配信を維持**
 
 理由:
 
-- Controlに対する平均処置効果は明確に正
-- 強いtreatment heterogeneityの証拠なし
-- Uplift ranking performanceは弱い
-- Top-k targetingはSend Allよりgross spendを有意に低下させた
+- 対照群に対する平均処置効果は明確に正
+- 強い処置効果の異質性の証拠なし
+- アップリフト順位付け性能は弱い
+- Top-k targetingは一律配信よりgross spendを有意に低下させた
+
+現時点では、targeting modelを利用する根拠は弱いと判断します。
 
 ### Women's Email
 
-**Decision: Send Allを現行ベースラインとして維持し、Targetingは検証候補とする**
+**Decision: 一律配信を現行基準として維持し、ターゲティングは検証候補とする**
 
 理由:
 
-- Controlに対する平均処置効果は正
-- Prior womens purchaseによるVisit / Conversion heterogeneityのsignalあり
-- Uplift modelでpositive ranking signalあり
+- 対照群に対する平均処置効果は正
+- 過去のWomen's商品購買履歴によるVisit / Conversionのheterogeneity signalあり
+- アップリフトモデルにpositive ranking signalあり
 - 一部Top-kで高いincremental effectが観測された
-- しかしSend Allとのgross spend差は不確実
-- Targeting policyはprospective validationされていない
+- しかし一律配信とのgross spend差は不確実
+- ターゲティング方針はprospective validationされていない
 - 経済的に妥当なnon-inferiority marginを決めるための粗利・配信コスト情報が不足
 
-したがって、**Women's Email targetingは有望だが、現在の証拠だけでSend Allを置き換えるべきではない**と判断します。
+したがって、
+
+> Women's Email targetingは有望だが、現在の証拠だけで一律配信を置き換えるべきではない。
+
+と判断します。
+
+---
+
+## 12. 推奨アクション
+
+1. Men's Emailは一律配信を維持する。
+2. Women's Emailも現時点では一律配信を維持する。
+3. Women's Top-10% targetingを次回検証候補として固定する。
+4. 実務上の粗利率・1配信あたりコストを取得する。
+5. それらからbusiness-justified non-inferiority marginを事前設定する。
+6. 必要サンプルサイズと実験期間が現実的か評価する。
+7. 実行可能であれば、一律配信 vs 固定済みTop-10%方針のprospective RCTを実施する。
