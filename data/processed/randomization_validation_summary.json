@@ -1,0 +1,34 @@
+{
+  "source_table": "hillstrom-experiment-20260828.ceus.hillstrom_raw",
+  "n_rows": 64000,
+  "treatment_groups": [
+    "No E-Mail",
+    "Mens E-Mail",
+    "Womens E-Mail"
+  ],
+  "expected_ratios": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "srm": {
+    "observed_counts": {
+      "No E-Mail": 21306,
+      "Mens E-Mail": 21307,
+      "Womens E-Mail": 21387
+    },
+    "expected_counts": {
+      "No E-Mail": 21333.333333333332,
+      "Mens E-Mail": 21333.333333333332,
+      "Womens E-Mail": 21333.333333333332
+    },
+    "chi_square_statistic": 0.20253125000000002,
+    "p_value": 0.9036929575604196,
+    "alpha": 0.01,
+    "sample_ratio_mismatch_flag": false
+  },
+  "smd_threshold": 0.1,
+  "max_abs_smd": 0.016899120365944938,
+  "imbalanced_covariates": [],
+  "interpretation": "Diagnostic only. Passing these checks does not prove successful randomization."
+}
