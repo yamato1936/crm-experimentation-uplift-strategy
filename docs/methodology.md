@@ -120,11 +120,7 @@ $$
 
 3群が概ね1:1:1で割り付けられているという帰無仮説をchi-square testで確認します。
 
-$$
-H_0:
-\quad
-p_{control}=p_{mens}=p_{womens}=\frac{1}{3}
-$$
+$$H_0:\quadp_{control}=p_{mens}=p_{womens}=\frac{1}{3}$$
 
 結果は、
 
@@ -139,12 +135,7 @@ $$
 
 連続変数では、
 
-$$
-\mathrm{SMD}
-=
-\frac{\bar X_T-\bar X_C}
-{\sqrt{(s_T^2+s_C^2)/2}}
-$$
+$$\mathrm{SMD}=\frac{\bar X_T-\bar X_C}{\sqrt{(s_T^2+s_C^2)/2}}$$
 
 を使用します。
 
@@ -152,9 +143,7 @@ $$
 
 最大絶対SMDは約0.017で、
 
-$$
-|SMD|\ge0.10
-$$
+$$|SMD|\ge0.10$$
 
 となる共変量はありませんでした。
 
@@ -244,9 +233,7 @@ Spendについては、
 
 したがって、主要な検定familyは
 
-$$
-2\ treatments\times3\ outcomes=6\ tests
-$$
+$$2\ treatments\times3\ outcomes=6\ tests$$
 
 です。
 
@@ -254,23 +241,11 @@ $$
 
 Visit / Conversionではdifference in proportionsを推定します。
 
-$$
-\widehat{ATE}
-=
-\hat p_T-\hat p_C
-$$
+$$\widehat{ATE}=\hat p_T-\hat p_C$$
 
 信頼区間はunpooled standard errorを用います。
 
-$$
-SE_{CI}
-=
-\sqrt{
-\frac{\hat p_T(1-\hat p_T)}{n_T}
-+
-\frac{\hat p_C(1-\hat p_C)}{n_C}
-}
-$$
+$$SE_{CI}=\sqrt{\frac{\hat p_T(1-\hat p_T)}{n_T}+\frac{\hat p_C(1-\hat p_C)}{n_C}}$$
 
 仮説検定では帰無仮説下のpooled probabilityを用いたz-testを使用します。
 
@@ -278,25 +253,13 @@ $$
 
 Spendではdifference in meansを推定します。
 
-$$
-\widehat{ATE}
-=
-\bar Y_T-\bar Y_C
-$$
+$$\widehat{ATE}=\bar Y_T-\bar Y_C$$
 
 分散が処置群で異なる可能性を考慮し、Welch inferenceを使用します。
 
 標準誤差は、
 
-$$
-SE
-=
-\sqrt{
-\frac{s_T^2}{n_T}
-+
-\frac{s_C^2}{n_C}
-}
-$$
+$$SE=\sqrt{\frac{s_T^2}{n_T}+\frac{s_C^2}{n_C}}$$
 
 です。
 
@@ -334,23 +297,13 @@ Raw subgroup liftだけでheterogeneityを断定しません。
 
 一般形は、
 
-$$
-Y_i
-=
-\beta_0
-+\beta_1T_i
-+\beta_2X_i
-+\beta_3(T_iX_i)
-+\varepsilon_i
-$$
+$$Y_i=\beta_0+\beta_1T_i+\beta_2X_i+\beta_3(T_iX_i)+\varepsilon_i$$
 
 です。
 
 処置効果の異質性はinteraction coefficient、
 
-$$
-\beta_3
-$$
+$$\beta_3$$
 
 で評価します。
 
@@ -388,25 +341,13 @@ Holm correctionはfollow-up family内のmultiplicityを制御しますが、仮�
 
 処置群と対照群で別々のoutcome modelを学習します。
 
-$$
-\hat\mu_1(x)
-=
-\widehat{E}[Y\mid T=1,X=x]
-$$
+$$\hat\mu_1(x)=\widehat{E}[Y\mid T=1,X=x]$$
 
-$$
-\hat\mu_0(x)
-=
-\widehat{E}[Y\mid T=0,X=x]
-$$
+$$\hat\mu_0(x)=\widehat{E}[Y\mid T=0,X=x]$$
 
 predicted upliftは、
 
-$$
-\hat\tau(x)
-=
-\hat\mu_1(x)-\hat\mu_0(x)
-$$
+$$\hat\tau(x)=\hat\mu_1(x)-\hat\mu_0(x)$$
 
 とします。
 
@@ -443,23 +384,13 @@ Model fittingはtrain setのみ、uplift ranking evaluationはheld-out test set�
 
 held-out ranking evaluationではrandomized treatment propensityを用いたtransformed outcome、
 
-$$
-\psi_i
-=
-\frac{T_iY_i}{p}
--
-\frac{(1-T_i)Y_i}{1-p}
-$$
+$$\psi_i=\frac{T_iY_i}{p}-\frac{(1-T_i)Y_i}{1-p}$$
 
 を利用します。
 
 randomized assignment下では、
 
-$$
-E[\psi_i\mid X]
-=
-CATE(X)
-$$
+$$E[\psi_i\mid X]=CATE(X)$$
 
 となります。
 
@@ -488,22 +419,14 @@ Individual Treatment Effectは各ユーザーについて同時に観測でき�
 
 deterministic policy $\pi(X)$ のvalueをInverse Propensity Weightingで推定します。
 
-$$
-V(\pi)
-=
-E\left[
-\pi(X)\frac{TY}{e}
-+
-\{1-\pi(X)\}\frac{(1-T)Y}{1-e}
-\right]
-$$
+$$V(\pi)=E\left[\pi(X)\frac{TY}{e}+\{1-\pi(X)\}\frac{(1-T)Y}{1-e}\right]$$
 
 ここで、
 
-- $T$: randomized treatment indicator
-- $Y$: observed outcome
-- $e$: treatment propensity
-- $\pi(X)$: model-based treatment rule
+- $T$ : randomized treatment indicator
+- $Y$ : observed outcome
+- $e$ : treatment propensity
+- $\pi(X)$ : model-based treatment rule
 
 です。
 
@@ -533,49 +456,29 @@ Top 10%、20%、30%、50%を比較しますが、同じheld-out dataを見た後
 
 Spend outcomeについて、delivery costを考慮したpolicy comparisonを行います。
 
-Policy $\pi$ のtreatment rateを $r_\pi$、1配信あたりcostを $c$ とすると、
+Policy $\pi$ のtreatment rateを $r_\pi$ 、1配信あたりcostを $c$ とすると、
 
-$$
-\mathrm{NetValue}(\pi,c)
-=
-V(\pi)-cr_\pi
-$$
+$$\mathrm{NetValue}(\pi,c)=V(\pi)-cr_\pi$$
 
 と定義します。
 
 ### 13.1 Send Noneとの損益分岐点
 
-$$
-V(\pi)-cr_\pi
-=
-V(None)
-$$
+$$V(\pi)-cr_\pi=V(None)$$
 
 より、
 
-$$
-c^*
-=
-\frac{V(\pi)-V(None)}{r_\pi}
-$$
+$$c^*=\frac{V(\pi)-V(None)}{r_\pi}$$
 
 を求めます。
 
 ### 13.2 Send Allとの損益分岐点
 
-$$
-V(\pi)-cr_\pi
-=
-V(All)-c
-$$
+$$V(\pi)-cr_\pi=V(All)-c$$
 
 より、
 
-$$
-c^*
-=
-\frac{V(All)-V(\pi)}{1-r_\pi}
-$$
+$$c^*=\frac{V(All)-V(\pi)}{1-r_\pi}$$
 
 となります。
 
@@ -592,12 +495,7 @@ Hillstrom Datasetには以下がありません。
 
 実務上は粗利率 $m$ を用いて、
 
-$$
-\mathrm{NetValue}
-=
-m\times\mathrm{IncrementalSpend}
--\mathrm{DeliveryCost}
-$$
+$$\mathrm{NetValue}=m\times\mathrm{IncrementalSpend}-\mathrm{DeliveryCost}$$
 
 で判断する必要があります。
 
@@ -626,13 +524,7 @@ Frozen policyでは以下をexperiment開始前に固定します。
 
 主要な推定対象は、
 
-$$
-\Delta
-=
-E[Spend\mid Targeting]
--
-E[Spend\mid SendAll]
-$$
+$$\Delta=E[Spend\mid Targeting]-E[Spend\mid SendAll]$$
 
 です。
 
@@ -648,11 +540,7 @@ Spendはzero-inflatedかつhigh varianceなので、特定の小さいMDEだけ�
 
 保守的に、
 
-$$
-\sigma_{plan}
-=
-\max(\sigma_{treatment},\sigma_{control})
-$$
+$$\sigma_{plan}=\max(\sigma_{treatment},\sigma_{control})$$
 
 を使用します。
 
@@ -660,11 +548,7 @@ $$
 
 Equal allocationの2-arm experimentについて、
 
-$$
-n
-=
-\frac{2\sigma^2(z_{1-\alpha/2}+z_{power})^2}{\delta^2}
-$$
+$$n=\frac{2\sigma^2(z_{1-\alpha/2}+z_{power})^2}{\delta^2}$$
 
 を用いて1群あたりのsample sizeを近似します。
 
@@ -672,29 +556,19 @@ $$
 
 Targetingでは配信量を大幅に削減する代わりに、一定のSpend lossを許容する可能性があります。
 
-$$
-\Delta
-=
-V(Targeting)-V(SendAll)
-$$
+$$\Delta=V(Targeting)-V(SendAll)$$
 
 non-inferiority marginを $M>0$ とすると、
 
-$$
-H_0:\Delta\le-M
-$$
+$$H_0:\Delta\le-M$$
 
-$$
-H_1:\Delta>-M
-$$
+$$H_1:\Delta>-M$$
 
 とします。
 
 必要sample sizeは、想定真値 $\Delta_{true}$ とnull boundaryとの差、
 
-$$
-\Delta_{true}+M
-$$
+$$\Delta_{true}+M$$
 
 に基づいて計算します。
 
